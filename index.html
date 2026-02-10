@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TRIDENT V7.6 - ULTIMATE (Full Controls)</title>
+  <title>TRIDENT V7.6 - DeepSeek (OpenAI-Level) Edition</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
@@ -20,7 +20,8 @@
     .btn-green:hover { background:rgba(22,163,74,0.3); }
     .hb { width:8px; height:8px; background:#333; border-radius:50%; display:inline-block; margin-right:6px; }
     .hb-on { background:#22c55e; box-shadow:0 0 6px #22c55e; }
-    select { background:#09090b; border:1px solid #27272a; color:#e4e4e7; padding:5px; border-radius:6px; font-size:12px; outline:none; }
+    select { background:#09090b; border:1px solid #27272a; color:#e4e4e7; padding:5px; border-radius:6px; font-size:12px; outline:none; cursor:pointer; }
+    option { background:#09090b; color:#d4d4d8; }
     input { background:#09090b; border:1px solid #27272a; color:#e4e4e7; padding:5px; border-radius:6px; font-size:12px; outline:none; }
     /* Scrollbar */
     ::-webkit-scrollbar { width:6px; height:6px; }
@@ -34,7 +35,7 @@
   <div class="flex items-center gap-4">
     <div>
       <h1 class="text-xl font-bold tracking-tight text-white flex items-center">
-        <span id="hb" class="hb"></span>TRIDENT <span class="text-green-500 text-xs ml-2">V7.6 (Full)</span>
+        <span id="hb" class="hb"></span>TRIDENT <span class="text-green-500 text-xs ml-2">V7.6 (DeepSeek)</span>
       </h1>
       <div class="flex gap-2 mt-1">
         <span class="badge">Universe: <b id="univCount" class="text-white">0</b></span>
@@ -45,10 +46,10 @@
   </div>
 
   <div class="flex flex-wrap items-center gap-2">
-    <select id="modelSelect">
-        <option value="llama3-70b-8192" selected>Llama3-70b (Smart)</option>
-        <option value="llama3-8b-8192">Llama3-8b (Fast)</option>
-        <option value="gemma-7b-it">Gemma-7b (Fast)</option>
+    <select id="modelSelect" class="w-56">
+        <option value="deepseek-r1-distill-llama-70b" selected>DeepSeek R1 (OpenAI-Level)</option>
+        <option value="mixtral-8x7b-32768">Mixtral 8x7B (Mistral AI)</option>
+        <option value="llama-3.3-70b-versatile">Llama 3.3 (Backup)</option>
     </select>
     
     <div class="relative group">
@@ -56,7 +57,7 @@
         <button id="btnSaveKey" class="btn text-[10px] px-2 py-1 absolute right-0 top-0 h-full border-l border-gray-700">SAVE</button>
     </div>
 
-    <button id="btnRunAI" class="btn btn-green">Analyze Now (Test)</button>
+    <button id="btnRunAI" class="btn btn-green">Analyze Now</button>
     <button id="btnToggleAI" class="btn border-gray-600">
       <span id="autoLbl">Auto: OFF</span>
     </button>
@@ -75,9 +76,9 @@
 
 <script>
 /* =========================================================================
-   TRIDENT V7.6 - ULTIMATE FIX
-   保留所有功能：AI選擇、手動測試、完整特徵
-   修復核心：WebSocket 聚合 (解決崩潰)
+   TRIDENT V7.6 - DEEPSEEK EDITION
+   Engine: WebSocket Aggregation (No Crash)
+   AI: DeepSeek R1 (The "OpenAI-Level" Reasoning Model)
    ========================================================================= */
 
 // --- CONFIGURATION ---
@@ -103,7 +104,7 @@ let socketPool = [];
 let candidatesTopN = [];
 let GROQ_KEY = localStorage.getItem("TRIDENT_GROQ_KEY") || "";
 let AUTO_AI = false;
-let AI_MODEL = "llama3-70b-8192"; // 預設模型
+let AI_MODEL = "deepseek-r1-distill-llama-70b"; // 預設使用 DeepSeek R1
 
 // --- UTILS ---
 const $ = (id) => document.getElementById(id);
@@ -135,7 +136,6 @@ function initCombinedStream(symbols) {
   
   setStatus("binStatus", "重建連線...", "warn");
   
-  // 每 50 個幣一組，避免 URL 過長
   const chunkSize = 50;
   for (let i = 0; i < symbols.length; i += chunkSize) {
     const chunk = symbols.slice(i, i + chunkSize);
@@ -167,21 +167,19 @@ function processAggTrade(d) {
     s.price = price;
     s.trades.push({ ts, notional, deltaNotional: isBuy ? notional : -notional });
 
-    // 簡單清理
     if (s.trades.length % 50 === 0) {
         const cutoff = Date.now() - CONFIG.ROLL_5M_MS;
         while(s.trades.length > 0 && s.trades[0].ts < cutoff) s.trades.shift();
         if(s.trades.length > CONFIG.MAX_TRADES_STORE) s.trades.splice(0, s.trades.length - CONFIG.MAX_TRADES_STORE);
     }
     
-    // 計算 Z-Score
     const stats = calcStats(s.trades, ts);
     s.volZ = stats.volZ;
     s.deltaZ = stats.deltaZ;
 }
 
 // =========================================================================
-// 2. FEATURE ENGINEERING (完整保留)
+// 2. FEATURE ENGINEERING (保留所有你需要的欄位)
 // =========================================================================
 function calcStats(trades, now) {
   if (trades.length < 10) return { volZ:0, deltaZ:0 };
@@ -257,7 +255,6 @@ function computeVP(trades) {
     return { poc, top_nodes, totalVol };
 }
 
-// 獲取 K 線與資金費率 (Ask AI 前觸發)
 async function ensureKlinesAndOI(sym) {
     const s = symState[sym];
     try {
@@ -269,18 +266,18 @@ async function ensureKlinesAndOI(sym) {
     } catch(e) {}
 }
 
-// 打包 Payload (完整版)
 function buildSummary(s, sym) {
     const techs = computeTechnicalFeatures(s.klines, s.price) || {};
     const vp = computeVP(s.trades) || {};
     
+    // 你的完整資料欄位
     return {
         symbol: sym,
         price: s.price,
         ret5m_pct: s.klines && s.klines.length ? (s.price - parseFloat(s.klines[s.klines.length-1][1])) / parseFloat(s.klines[s.klines.length-1][1]) : 0,
         vol5m_notional: vp.totalVol || 0,
         volZ_5m: s.volZ,
-        active_buy_delta_5m_notional: s.deltaZ * 1000, // 模擬值
+        active_buy_delta_5m_notional: s.deltaZ * 1000, 
         buy_ratio_5m: s.deltaZ > 0 ? 0.6 : 0.4,
         funding_pct: s.funding || 0,
         premium_pct: 0,
@@ -299,11 +296,11 @@ function buildSummary(s, sym) {
         },
         stage: "SCALP_5M",
         preScore: s.volZ,
-        tags: ["high_vol"],
+        tags: ["high_vol", "breakout"],
         kline_interval: "5m",
         warmup_minutes: 5,
         mode: "LONG_ONLY",
-        note: "...資料屬 5K 小波段..."
+        note: "DeepSeek Reasoning Mode"
     };
 }
 
@@ -350,7 +347,7 @@ function buildTrackedTopN() {
                 <div><div class="muted">Vol Z</div><div class="${colorZ}">${item.volZ.toFixed(2)}</div></div>
                 <div><div class="muted">Delta Z</div><div class="${colorD}">${item.deltaZ.toFixed(2)}</div></div>
             </div>
-            ${isTop ? `<div class="absolute top-0 right-0 px-2 py-0.5 bg-green-900 text-green-300 text-[10px] rounded-bl">AI TOP 1</div>` : ''}
+            ${isTop ? `<div class="absolute top-0 right-0 px-2 py-0.5 bg-green-900 text-green-300 text-[10px] rounded-bl">AI FOCUS</div>` : ''}
         </div>`;
     }).join('');
 }
@@ -358,20 +355,26 @@ function buildTrackedTopN() {
 async function askAI(force = false) {
     if ((!AUTO_AI && !force) || !GROQ_KEY || candidatesTopN.length === 0) return;
     
-    // 如果是手動測試，就強迫 AI 分析第一名，或者你可以改成分析特定幣
     const targetSym = candidatesTopN[0].s; 
+    setStatus("aiStatus", `分析 ${targetSym}...`, "violet");
     
-    setStatus("aiStatus", `分析 ${targetSym} (${AI_MODEL})...`, "violet");
-    
-    await ensureKlinesAndOI(targetSym); // 確保資料齊全
+    await ensureKlinesAndOI(targetSym);
     const payload = buildSummary(symState[targetSym], targetSym);
     
+    // DeepSeek 專用提示詞 (Chain of Thought)
     const prompt = `
-    Role: Scalping Bot. Mode: LONG_ONLY.
-    Model: ${AI_MODEL}
-    Task: Analyze JSON data for 5-min trade.
+    You are a professional Crypto Scalper using DeepSeek R1 logic.
+    Mode: LONG_ONLY.
     Data: ${JSON.stringify(payload)}
-    Output JSON only: { "signal": "BUY/WAIT", "reason": "...", "confidence": 0-100 }
+    
+    Think step-by-step:
+    1. Check Vol Z score (>2 is good).
+    2. Check Delta Z (must be positive for Long).
+    3. Check SMA20 distance (mean reversion).
+    4. Check VP POC (is price above POC?).
+    
+    Return JSON only:
+    { "signal": "BUY" or "WAIT", "reason": "Short explanation", "confidence": 0-100 }
     `;
 
     try {
@@ -379,14 +382,18 @@ async function askAI(force = false) {
             method: "POST",
             headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: AI_MODEL, // ✅ 使用你選擇的模型
+                model: AI_MODEL, // 這裡會用 DeepSeek
                 messages: [{ role: "user", content: prompt }],
-                temperature: 0.1
+                temperature: 0.1 // 讓 DeepSeek 更理性
             })
         });
         const json = await res.json();
         const content = json.choices[0].message.content;
-        log(`<span class="text-green-400">AI (${targetSym}):</span> ${content.substring(0, 80)}...`);
+        
+        // 簡單清洗 DeepSeek 有時會吐出的 <think> 標籤
+        const cleanContent = content.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+        
+        log(`<span class="text-green-400">DeepSeek (${targetSym}):</span> ${cleanContent.substring(0, 80)}...`);
         setStatus("aiStatus", "分析完成", "ok");
     } catch(e) {
         log("AI Error: " + e.message);
@@ -399,17 +406,16 @@ window.onload = async () => {
     $("groqKeyInput").value = GROQ_KEY;
     $("modelSelect").value = AI_MODEL;
 
-    // 事件監聽
     $("btnSaveKey").onclick = () => { GROQ_KEY = $("groqKeyInput").value; localStorage.setItem("TRIDENT_GROQ_KEY", GROQ_KEY); alert("Key Saved"); };
     $("btnToggleAI").onclick = () => { AUTO_AI = !AUTO_AI; $("autoLbl").innerText = `Auto: ${AUTO_AI?"ON":"OFF"}`; $("btnToggleAI").className = `btn ${AUTO_AI?"btn-green":"border-gray-600"}`; };
-    $("btnRunAI").onclick = () => { askAI(true); }; // ✅ 手動觸發
-    $("modelSelect").onchange = (e) => { AI_MODEL = e.target.value; log(`模型切換為: ${AI_MODEL}`); }; // ✅ 模型切換
+    $("btnRunAI").onclick = () => { askAI(true); };
+    $("modelSelect").onchange = (e) => { AI_MODEL = e.target.value; log(`模型切換為: ${AI_MODEL}`); };
 
     await refreshUniverse();
     
     setInterval(buildTrackedTopN, CONFIG.CANDIDATE_REFRESH_MS);
     setInterval(refreshUniverse, CONFIG.UNIVERSE_REFRESH_MS);
-    setInterval(() => askAI(false), 30000); // 自動模式每 30 秒跑一次
+    setInterval(() => askAI(false), 30000); 
 };
 </script>
 </body>
