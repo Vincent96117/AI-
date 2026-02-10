@@ -3,410 +3,352 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TRIDENT V7.9 - PRO WAR ROOM (Full Info + Stable)</title>
+  <title>TRIDENT V9.0 - SNIPER (Stable UI + Auto AI)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-    body { background:#050505; color:#d4d4d8; font-family:'JetBrains Mono', monospace; overflow-x:hidden; }
+    body { background:#000000; color:#e4e4e7; font-family:'JetBrains Mono', monospace; overflow-x:hidden; }
     
-    /* PRO UI STYLES */
-    .panel { background:#0a0a0b; border:1px solid #27272a; }
-    .card { background:#0f0f11; border:1px solid #27272a; border-radius:8px; overflow:hidden; position:relative; transition: all 0.2s; }
-    .card:hover { border-color: #52525b; transform: translateY(-2px); }
-    .card-top { border:1px solid #10b981 !important; box-shadow:0 0 15px rgba(16,185,129,0.15); }
+    /* 穩定 UI (無閃爍) */
+    .panel { background:#09090b; border-bottom:1px solid #27272a; }
+    .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 12px; }
     
-    .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border:1px solid #27272a; background:#18181b; }
-    .val-up { color: #34d399; } .val-down { color: #f87171; } .val-neu { color: #a1a1aa; }
+    /* 卡片設計 */
+    .card { background:#121214; border:1px solid #27272a; border-radius:8px; padding:12px; position:relative; transition: background 0.3s; }
+    .card.active-long { border-color: #059669; background: #062c1b; }
+    .card.active-short { border-color: #dc2626; background: #2f0e0e; }
     
-    .btn { padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; border:1px solid #3f3f46; background:#18181b; transition:0.2s; }
-    .btn:hover { background:#27272a; color:white; }
-    .btn-green { border-color:#059669; color:#6ee7b7; background:rgba(5,150,105,0.1); }
-    .btn-green:hover { background:rgba(5,150,105,0.3); }
+    /* 數值顏色 */
+    .t-up { color: #34d399; } .t-down { color: #f87171; } .t-neu { color: #71717a; }
+    
+    /* 狙擊手面板 (Top Signal) */
+    #sniperPanel { 
+        background: linear-gradient(180deg, #0f1f15 0%, #000000 100%); 
+        border-bottom: 2px solid #059669; 
+        min-height: 140px; 
+        display: none; /* 預設隱藏，有訊號才開 */
+        padding: 20px;
+        animation: slideDown 0.5s ease-out;
+    }
+    @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-    /* GRID LAYOUTS */
-    .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 10px; margin-top: 6px; }
-    .data-row { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #1f1f23; }
-    .data-row:last-child { border-bottom: none; }
-    
-    /* AI PLAN BOX */
-    .ai-plan { background: #0f1f15; border: 1px solid #064e3b; padding: 8px; border-radius: 6px; margin-top: 8px; }
-    .plan-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px; }
-    
-    /* LOADING / STATUS */
-    .hb { width:8px; height:8px; background:#333; border-radius:50%; display:inline-block; margin-right:6px; }
-    .hb-on { background:#10b981; box-shadow:0 0 8px #10b981; }
-    input, select { background:#18181b; border:1px solid #3f3f46; color:white; padding:6px; border-radius:6px; font-size:11px; outline:none; }
+    /* 進度條與標籤 */
+    .loading-bar { height:2px; background:#27272a; width:100%; position:fixed; top:0; z-index:99; }
+    .bar-fill { height:100%; background:#10b981; width:0%; transition: width 0.2s; }
+    .tag { font-size:10px; padding:2px 6px; border-radius:4px; font-weight:bold; }
+    .tag-l { background:#064e3b; color:#34d399; border:1px solid #059669; }
+    .tag-s { background:#450a0a; color:#f87171; border:1px solid #dc2626; }
+
+    /* 按鈕 */
+    .btn { background:#27272a; border:1px solid #3f3f46; color:white; padding:4px 12px; border-radius:4px; font-size:11px; cursor:pointer; }
+    .btn:hover { background:#3f3f46; }
+    .btn-act { background:#059669; border-color:#10b981; }
+
+    /* 數據格 */
+    .stat-row { display:flex; justify-content:space-between; font-size:11px; margin-top:4px; color:#a1a1aa; }
+    .stat-val { font-weight:bold; color:#e4e4e7; }
   </style>
 </head>
-<body class="p-4">
+<body>
 
-<div class="panel p-3 rounded-xl mb-4 flex flex-col md:flex-row gap-4 justify-between items-center shadow-lg">
-  <div class="flex items-center gap-3">
-    <div class="text-xl font-black italic tracking-tighter text-white">TRIDENT <span class="text-emerald-500">V7.9</span></div>
-    <div class="flex gap-2 text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-        <span><span id="hb" class="hb"></span>Socket: <b id="wsStatus">Wait</b></span>
-        <span>Univ: <b id="univCount">0</b></span>
-        <span>Liq: <b id="liqStatus">Off</b></span>
-    </div>
-  </div>
+<div class="loading-bar"><div id="progBar" class="bar-fill"></div></div>
 
-  <div class="flex gap-2 items-center">
-    <select id="aiModel" class="w-32">
-        <option value="deepseek-r1-distill-llama-70b">DeepSeek R1</option>
-        <option value="llama-3.3-70b-versatile">Llama 3.3</option>
-    </select>
-    <input type="password" id="apiKey" placeholder="Groq API Key" class="w-32" />
-    <button class="btn btn-green" onclick="saveKey()">SAVE</button>
-    <button class="btn" onclick="toggleAuto()" id="btnAuto">AUTO: OFF</button>
-    <button class="btn btn-green" onclick="forceAiRun()">⚡ ANALYZE TOP 1</button>
-  </div>
-</div>
-
-<div id="errBox" class="hidden mb-4 p-2 bg-red-900/20 border border-red-500 text-red-400 text-xs rounded text-center"></div>
-
-<div id="cardGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-    <div class="text-gray-600 text-xs col-span-full text-center py-10">
-        正在建立聚合數據流 (Combined Stream)... 請稍候
+<div id="sniperPanel">
+    <div class="max-w-4xl mx-auto flex flex-col md:flex-row gap-6 items-center">
+        <div class="flex-1">
+            <div class="text-xs text-green-400 font-bold tracking-widest mb-1">🔥 AI SNIPER SIGNAL DETECTED</div>
+            <div class="text-4xl font-black text-white flex items-end gap-3">
+                <span id="aiSym">BTCUSDT</span>
+                <span id="aiSide" class="tag tag-l text-lg align-middle">LONG</span>
+            </div>
+            <div class="text-sm text-gray-400 mt-2" id="aiReason">Analyzing market structure...</div>
+        </div>
+        <div class="flex-1 w-full bg-black/40 p-4 rounded border border-gray-800 grid grid-cols-3 gap-4 text-center">
+            <div><div class="text-gray-500 text-xs">ENTRY</div><div id="aiEntry" class="text-white font-mono text-lg">-</div></div>
+            <div><div class="text-gray-500 text-xs">TARGET</div><div id="aiTp" class="text-green-400 font-mono text-lg">-</div></div>
+            <div><div class="text-gray-500 text-xs">STOP</div><div id="aiSl" class="text-red-400 font-mono text-lg">-</div></div>
+        </div>
+        <div class="text-right">
+             <div class="text-xs text-gray-500">CONFIDENCE</div>
+             <div id="aiConf" class="text-3xl font-bold text-green-500">0%</div>
+        </div>
     </div>
 </div>
+
+<div class="panel p-3 flex justify-between items-center sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
+    <div class="flex items-center gap-4">
+        <div class="font-black italic text-lg text-white">TRIDENT <span class="text-emerald-500">V9</span></div>
+        <div class="text-[10px] text-gray-500 flex gap-3">
+            <span>SOCKET: <b id="wsState" class="text-yellow-500">CONNECTING</b></span>
+            <span>UNIVERSE: <b id="uCount">0</b></span>
+        </div>
+    </div>
+    <div class="flex gap-2">
+        <input type="password" id="apiKey" placeholder="GROQ KEY" class="bg-black border border-gray-700 text-white text-xs p-1 rounded w-24">
+        <button id="btnAuto" class="btn" onclick="toggleAuto()">AI AUTO: OFF</button>
+    </div>
+</div>
+
+<div id="gridBox" class="grid-container">
+    </div>
 
 <script>
 /* =========================================================================
-   TRIDENT V7.9 PRO - FULL INFO RESTORED
-   Features:
-   1. Aggregated Websockets (No Crash)
-   2. Full UI (Funding, OI, Liq, VolZ, DeltaZ)
-   3. AI Structured Output (JSON: Entry/TP/SL)
+   TRIDENT V9.0 - SNIPER CORE
+   Key Tech:
+   1. Virtual DOM Patching: getElementById() update instead of innerHTML rewrite.
+   2. Score-Based AI Trigger: Only analyzes the highest potential coin.
+   3. Backfill & Instant OI: No waiting for data.
    ========================================================================= */
 
 const CONFIG = {
-    UNIVERSE_SIZE: 90,
-    REFRESH_MS: 3000,
-    AI_COOLDOWN_MS: 60 * 1000,
-    VOL_Z_THRESH: 0.5,
-    TIMEFRAME: '5m'
+    UNIVERSE: 50,      // 只監控前 50 大成交量 (專注流動性)
+    AI_INTERVAL: 15000,// AI 每 15 秒掃描一次
+    VOL_THRESH: 1.5,   // Z-Score 門檻
+    REFRESH_UI: 500    // UI 更新頻率 (ms) - 雖然快，但因為是定點更新，不會閃
 };
 
-// --- STATE ---
-let universe = [];
-let symState = {};
-let socketPool = [];
-let liqSocket = null;
-let topCandidates = [];
-let autoAI = false;
-let isAiRunning = false;
-let GROQ_KEY = localStorage.getItem("V79_KEY") || "";
+// State
+let symbols = {}; // { "BTCUSDT": { p:0, volZ:0, ... } }
+let sortedSyms = [];
+let isAuto = false;
+let isAiBusy = false;
+let GROQ_KEY = localStorage.getItem("V9_KEY") || "";
+let wsPool = [];
 
-// --- UTILS ---
+// Init
 const $ = id => document.getElementById(id);
-const fmt = (n, d=2) => (n==null || isNaN(n)) ? "-" : Number(n).toFixed(d);
-const colorVal = (n) => n > 0 ? "val-up" : (n < 0 ? "val-down" : "val-neu");
+const fmt = (n, d=2) => Number(n).toFixed(d);
+const cls = (n) => n > 0 ? "t-up" : (n < 0 ? "t-down" : "t-neu");
 
-function saveKey() {
-    GROQ_KEY = $("apiKey").value.trim();
-    localStorage.setItem("V79_KEY", GROQ_KEY);
-    alert("Key Saved");
-}
-
-function toggleAuto() {
-    autoAI = !autoAI;
-    $("btnAuto").innerText = `AUTO: ${autoAI?"ON":"OFF"}`;
-    $("btnAuto").classList.toggle("btn-green", autoAI);
-}
-
-// --- 1. DATA FEED (AGGREGATED & ROBUST) ---
-async function initUniverse() {
-    try {
-        const res = await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr");
-        const data = await res.json();
-        
-        // Filter liquid pairs
-        universe = data
-            .filter(t => t.symbol.endsWith("USDT") && parseFloat(t.quoteVolume) > 10000000)
-            .sort((a,b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-            .slice(0, CONFIG.UNIVERSE_SIZE)
-            .map(t => t.symbol);
-            
-        $("univCount").innerText = universe.length;
-        
-        // Init State
-        universe.forEach(s => {
-            if(!symState[s]) symState[s] = {
-                s: s, p: 0, 
-                trades: [], buckets: [], 
-                volZ: 0, deltaZ: 0,
-                fund: 0, oi: 0, oiDelta: 0,
-                liqL: 0, liqS: 0, // Liquidation Long/Short
-                aiPlan: null
-            };
-        });
-
-        initSockets(universe);
-        initLiquidationStream();
-        refreshPremiumAndOI(); // Slow poll for funding/OI
-        
-    } catch(e) { console.error("Init Error", e); }
-}
-
-// WEBSOCKET: AGGREGATED TRADES (Anti-Crash)
-function initSockets(syms) {
-    socketPool.forEach(ws => ws.close());
-    socketPool = [];
+async function init() {
+    $("apiKey").value = GROQ_KEY;
     
-    const CHUNK = 40;
-    for(let i=0; i<syms.length; i+=CHUNK) {
-        const chunk = syms.slice(i, i+CHUNK);
-        const streams = chunk.map(s => `${s.toLowerCase()}@aggTrade`).join('/');
-        const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
-        
-        ws.onopen = () => { 
-            $("wsStatus").innerText = "LIVE"; 
-            $("wsStatus").className = "text-green-500"; 
-            $("hb").classList.add("hb-on");
+    // 1. Fetch Universe
+    const res = await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr");
+    const data = await res.json();
+    const top50 = data
+        .filter(t => t.symbol.endsWith("USDT") && parseFloat(t.quoteVolume) > 50000000)
+        .sort((a,b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+        .slice(0, CONFIG.UNIVERSE);
+
+    $("uCount").innerText = top50.length;
+
+    // 2. Initialize State Objects (空殼)
+    top50.forEach(t => {
+        symbols[t.symbol] = {
+            s: t.symbol, 
+            p: parseFloat(t.lastPrice),
+            volZ: 0, 
+            deltaZ: 0,
+            fund: 0,
+            oi: 0,
+            score: 0 // 機會分數
         };
-        
-        ws.onmessage = (e) => {
-            const msg = JSON.parse(e.data);
-            if(msg.data) processTrade(msg.data);
-        };
-        socketPool.push(ws);
-    }
+        createCard(t.symbol); // 預先建立 DOM 元素
+    });
+
+    // 3. Batch Backfill (補數據)
+    backfillData(top50.map(t=>t.symbol));
+
+    // 4. Start Websocket
+    startSocket(top50.map(t=>t.symbol));
+
+    // 5. Loops
+    setInterval(updateUI, CONFIG.REFRESH_UI); // 介面更新
+    setInterval(aiScanner, CONFIG.AI_INTERVAL); // AI 掃描
 }
 
-// WEBSOCKET: LIQUIDATIONS (Restored Feature)
-function initLiquidationStream() {
-    if(liqSocket) liqSocket.close();
-    liqSocket = new WebSocket("wss://fstream.binance.com/ws/!forceOrder@arr");
-    liqSocket.onopen = () => $("liqStatus").innerText = "ON";
-    liqSocket.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        // Force Order format: { o: { s: symbol, S: side, q: quantity, p: price } }
-        // Side BUY = Short Liquidated, Side SELL = Long Liquidated
-        const liqData = data.o;
-        const sym = liqData.s;
-        if(symState[sym]) {
-            const val = parseFloat(liqData.q) * parseFloat(liqData.p);
-            if(liqData.S === "BUY") symState[sym].liqS += val; // Short Liq (Buy flow)
-            else symState[sym].liqL += val; // Long Liq (Sell flow)
-            
-            // Auto decay liq stats every minute to keep it "fresh"
-            setTimeout(() => { 
-                if(symState[sym]) {
-                    if(liqData.S === "BUY") symState[sym].liqS -= val;
-                    else symState[sym].liqL -= val;
-                }
-            }, 60000);
+// --- CORE: DOM CREATION (只執行一次) ---
+function createCard(s) {
+    const div = document.createElement("div");
+    div.id = `card-${s}`;
+    div.className = "card";
+    div.innerHTML = `
+        <div class="flex justify-between items-center mb-2">
+            <span class="font-bold text-sm text-white">${s}</span>
+            <span id="p-${s}" class="font-mono text-xs text-gray-400">---</span>
+        </div>
+        <div class="stat-row"><span>Vol Z</span><span id="v-${s}" class="stat-val">0.00</span></div>
+        <div class="stat-row"><span>CVD Z</span><span id="d-${s}" class="stat-val">0.00</span></div>
+        <div class="stat-row"><span>Fund%</span><span id="f-${s}" class="stat-val">0.0000</span></div>
+        <div class="stat-row"><span>Score</span><span id="sc-${s}" class="stat-val text-yellow-500">0</span></div>
+    `;
+    $("gridBox").appendChild(div);
+}
+
+// --- CORE: DATA BACKFILL (補齊歷史) ---
+async function backfillData(syms) {
+    $("progBar").style.width = "30%";
+    
+    // 1. Funding (Global)
+    try {
+        const fRes = await fetch("https://fapi.binance.com/fapi/v1/premiumIndex");
+        const fData = await fRes.json();
+        fData.forEach(x => {
+            if(symbols[x.symbol]) symbols[x.symbol].fund = parseFloat(x.lastFundingRate)*100;
+        });
+    } catch(e){}
+
+    // 2. Klines for Vol/CVD (Batching to avoid spam)
+    let done = 0;
+    const batchSize = 10;
+    for(let i=0; i<syms.length; i+=batchSize) {
+        const batch = syms.slice(i, i+batchSize);
+        await Promise.all(batch.map(async (s) => {
+            try {
+                const k = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${s}&interval=15m&limit=50`).then(r=>r.json());
+                // Calc Vol Z
+                const vols = k.map(x=>parseFloat(x[5]));
+                const mean = vols.reduce((a,b)=>a+b,0)/vols.length;
+                const std = Math.sqrt(vols.map(x=>Math.pow(x-mean,2)).reduce((a,b)=>a+b,0)/vols.length);
+                const lastVol = vols[vols.length-1];
+                symbols[s].volZ = (lastVol - mean) / (std || 1);
+                
+                // Calc Est. CVD Z (Taker Buy Base Vol is index 9)
+                const buys = k.map(x=>parseFloat(x[9]));
+                const deltas = k.map((x, idx) => buys[idx] - (vols[idx]-buys[idx])); // Buy - Sell
+                const dMean = deltas.reduce((a,b)=>a+b,0)/deltas.length;
+                const dStd = Math.sqrt(deltas.map(x=>Math.pow(x-dMean,2)).reduce((a,b)=>a+b,0)/deltas.length);
+                symbols[s].deltaZ = (deltas[deltas.length-1] - dMean) / (dStd || 1);
+            } catch(e){}
+        }));
+        done += batch.length;
+        $("progBar").style.width = `${30 + (done/syms.length)*70}%`;
+    }
+    setTimeout(()=>$("progBar").style.width="0%", 500);
+}
+
+// --- CORE: SOCKET (即時數據) ---
+function startSocket(syms) {
+    const streams = syms.map(s => `${s.toLowerCase()}@aggTrade`).join('/');
+    const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
+    ws.onopen = () => { $("wsState").innerText = "LIVE"; $("wsState").className = "text-green-500"; };
+    ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if(!msg.data) return;
+        const t = msg.data;
+        const s = symbols[t.s];
+        if(s) {
+            s.p = parseFloat(t.p);
+            // 簡單的實時動量模擬
+            const isBuy = !t.m;
+            s.deltaZ += (isBuy ? 0.005 : -0.005);
+            // Decay
+            s.deltaZ *= 0.999; 
         }
     };
 }
 
-// HTTP POLL: Funding & OI (Lazy Loading)
-async function refreshPremiumAndOI() {
-    // Only fetch for top candidates to save API limits, but fetch Premium for all occasionally
-    try {
-        const premRes = await fetch("https://fapi.binance.com/fapi/v1/premiumIndex");
-        const premData = await premRes.json();
-        premData.forEach(p => {
-            if(symState[p.symbol]) symState[p.symbol].fund = parseFloat(p.lastFundingRate) * 100;
-        });
-    } catch(e) {}
-    setTimeout(refreshPremiumAndOI, 60000);
-}
+// --- CORE: UI UPDATE (NO FLICKER) ---
+function updateUI() {
+    // 1. Calculate Scores & Sort
+    sortedSyms = Object.values(symbols).sort((a,b) => {
+        // Score Logic: Vol + Abs(Delta) + Funding Penalty
+        const scoreA = Math.abs(a.volZ) + Math.abs(a.deltaZ) - (Math.abs(a.fund)*10);
+        const scoreB = Math.abs(b.volZ) + Math.abs(b.deltaZ) - (Math.abs(b.fund)*10);
+        a.score = scoreA; b.score = scoreB;
+        return scoreB - scoreA;
+    });
 
-// LOGIC: Z-Score & Aggregation
-function processTrade(t) {
-    const s = symState[t.s];
-    if(!s) return;
-    
-    const price = parseFloat(t.p);
-    const qty = parseFloat(t.q);
-    const isBuy = !t.m;
-    const notional = price * qty;
-    
-    s.p = price;
-    s.trades.push({ t: t.T, v: notional, d: isBuy ? notional : -notional });
-    
-    // Prune old trades (>5 min)
-    const cutoff = Date.now() - 5*60*1000;
-    while(s.trades.length > 0 && s.trades[0].t < cutoff) s.trades.shift();
-    
-    // Simple Calc (Efficient)
-    if(s.trades.length > 10) {
-        // Calculate Mean/StdDev on the fly is too heavy for JS loop
-        // We use a simplified Accumulator approximation
-        const vols = s.trades.map(x => x.v);
-        const deltas = s.trades.map(x => x.d);
-        
-        // Approx Z-Score logic (Last 10 trades vs Avg)
-        const vSum = vols.reduce((a,b)=>a+b,0);
-        const vAvg = vSum / vols.length;
-        const recentVol = vols.slice(-5).reduce((a,b)=>a+b,0) / 5;
-        
-        s.volZ = (recentVol - vAvg) / (vAvg * 0.5 + 1); // Simplified normalization
-        
-        const dSum = deltas.reduce((a,b)=>a+b,0);
-        s.deltaZ = dSum; // Raw Delta for now, Z-score needs history buckets
-    }
-}
-
-// --- 2. UI RENDERING (RICH INFO) ---
-function renderUI() {
-    // Find active candidates
-    const active = Object.values(symState)
-        .filter(s => s.volZ > CONFIG.VOL_Z_THRESH) // Only active coins
-        .sort((a,b) => b.volZ - a.volZ)
-        .slice(0, 12);
-        
-    topCandidates = active;
-    
-    const html = active.map((s, idx) => {
-        const isTop = idx === 0;
-        const aiBox = s.aiPlan ? `
-            <div class="ai-plan">
-                <div class="text-[10px] text-green-400 font-bold mb-1">🤖 ${s.aiPlan.action} (${s.aiPlan.conf}%)</div>
-                <div class="plan-row text-gray-400"><span>ENTRY</span><span class="text-white">${fmt(s.aiPlan.entry)}</span></div>
-                <div class="plan-row text-gray-400"><span>TP1</span><span class="text-green-300">${fmt(s.aiPlan.tp1)}</span></div>
-                <div class="plan-row text-gray-400"><span>SL</span><span class="text-red-400">${fmt(s.aiPlan.sl)}</span></div>
-                <div class="text-[9px] text-gray-500 mt-1 italic leading-tight">${s.aiPlan.reason}</div>
-            </div>
-        ` : '';
-
-        return `
-        <div class="card p-3 ${isTop ? 'card-top' : ''}">
-            <div class="flex justify-between items-center mb-2">
-                <span class="font-bold text-base text-white">${s.s}</span>
-                <span class="font-mono text-sm text-gray-300">$${s.p}</span>
-            </div>
+    // 2. Patch DOM
+    sortedSyms.forEach(s => {
+        const el = $(`card-${s.s}`);
+        if(el) {
+            // Update Text Nodes Directly
+            $(`p-${s.s}`).innerText = s.p;
             
-            <div class="data-grid">
-                <div class="data-row"><span class="text-gray-500">Vol Z</span><span class="${colorVal(s.volZ)} font-bold">${fmt(s.volZ, 2)}</span></div>
-                <div class="data-row"><span class="text-gray-500">Delta</span><span class="${colorVal(s.deltaZ)}">${(s.deltaZ/1000).toFixed(0)}k</span></div>
-                <div class="data-row"><span class="text-gray-500">Fund%</span><span class="${colorVal(s.fund)}">${fmt(s.fund, 4)}%</span></div>
-                <div class="data-row"><span class="text-gray-500">Liq S</span><span class="text-green-600">$${(s.liqS/1000).toFixed(1)}k</span></div>
-                <div class="data-row"><span class="text-gray-500">Liq L</span><span class="text-red-600">$${(s.liqL/1000).toFixed(1)}k</span></div>
-            </div>
-            ${aiBox}
-        </div>
-        `;
-    }).join('');
-    
-    $("cardGrid").innerHTML = html || `<div class="text-gray-600 p-4">Waiting for Volatility...</div>`;
-}
+            const vEl = $(`v-${s.s}`); vEl.innerText = fmt(s.volZ); vEl.className = `stat-val ${cls(s.volZ)}`;
+            const dEl = $(`d-${s.s}`); dEl.innerText = fmt(s.deltaZ); dEl.className = `stat-val ${cls(s.deltaZ)}`;
+            const fEl = $(`f-${s.s}`); fEl.innerText = fmt(s.fund, 4) + "%"; 
+            const scEl = $(`sc-${s.s}`); scEl.innerText = fmt(s.score, 1);
 
-// --- 3. AI LOGIC (FULL PAYLOAD & JSON PARSING) ---
-async function forceAiRun() {
-    if(!topCandidates.length) return alert("No active candidates");
-    const s = topCandidates[0];
-    await runDeepSeekAnalysis(s);
-}
-
-async function runDeepSeekAnalysis(s) {
-    if(isAiRunning || !GROQ_KEY) return;
-    isAiRunning = true;
-    $("btnAuto").innerText = "THINKING...";
-    
-    try {
-        // 1. Fetch detailed Klines for context
-        const kRes = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${s.s}&interval=5m&limit=30`);
-        const klines = await kRes.json();
-        const closes = klines.map(k=>parseFloat(k[4]));
-        const highs = klines.map(k=>parseFloat(k[2]));
-        const lows = klines.map(k=>parseFloat(k[3]));
-        
-        // 2. Calc Indicators locally
-        const sma20 = closes.slice(-20).reduce((a,b)=>a+b,0)/20;
-        const atr = (Math.max(...highs) - Math.min(...lows)) / 2; // Rough ATR
-        
-        // 3. Construct THE MASSIVE PAYLOAD
-        const payload = {
-            symbol: s.s,
-            price: s.p,
-            metrics: {
-                vol_z_score: s.volZ,
-                delta_cvd: s.deltaZ,
-                funding_rate: s.fund,
-                liquidation_short: s.liqS,
-                liquidation_long: s.liqL
-            },
-            technical: {
-                sma_20: sma20,
-                price_vs_sma: s.p > sma20 ? "ABOVE" : "BELOW",
-                recent_high: Math.max(...highs.slice(-10)),
-                recent_low: Math.min(...lows.slice(-10)),
-                atr_volatility: atr
-            }
-        };
-
-        const prompt = `
-        ACT AS A SCALPING TRADER. ANALYZE DATA:
-        ${JSON.stringify(payload)}
-        
-        STRATEGY:
-        1. If Vol Z > 2 and Delta is Positive -> Long Bias.
-        2. If Price > SMA20 -> Bullish.
-        3. Avoid if Funding > 0.05%.
-        
-        OUTPUT FORMAT (JSON ONLY, NO MARKDOWN):
-        {
-            "action": "LONG" or "SHORT" or "WAIT",
-            "confidence": 0-100,
-            "entry": number,
-            "tp1": number,
-            "tp2": number,
-            "sl": number,
-            "reason": "Short logic explanation"
+            // Reorder visually using 'order' style (Flexbox/Grid hack) or just let them stay
+            // 為求穩定，這裡不頻繁改變 DOM 順序，只高亮前幾名
+            if(s.score > 3) el.style.borderColor = "#f59e0b"; // Gold border for high score
+            else el.style.borderColor = "#27272a";
         }
+    });
+}
+
+// --- CORE: AI SNIPER (自動狙擊) ---
+async function aiScanner() {
+    if(!isAuto || isAiBusy || sortedSyms.length === 0) return;
+    
+    // Pick Top 1 Candidate
+    const target = sortedSyms[0];
+    if(target.score < 2.0) return; // 分數太低不看
+
+    isAiBusy = true;
+    $("btnAuto").innerText = `SCANNING: ${target.s}...`;
+
+    try {
+        const prompt = `
+        ACT AS A CRYPTO SNIPER. ANALYZE: ${target.s}
+        Price: ${target.p}
+        Vol Z-Score: ${target.volZ} (High vol is good)
+        Delta Z-Score: ${target.deltaZ} (Positive=Buy Pressure)
+        Funding: ${target.fund}%
+        
+        DECISION RULES:
+        1. IF Vol > 2 AND Delta > 1 -> LONG
+        2. IF Vol > 2 AND Delta < -1 -> SHORT
+        3. ELSE -> WAIT
+
+        OUTPUT JSON ONLY:
+        { "action": "LONG"|"SHORT"|"WAIT", "entry": price, "tp": price, "sl": price, "conf": 0-100, "reason": "short text" }
         `;
 
-        // 4. Call Groq
         const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: $("aiModel").value,
-                messages: [{ role: "user", content: prompt }],
+                model: "llama-3.3-70b-versatile", // Fast & Good
+                messages: [{role: "user", content: prompt}],
                 temperature: 0.1
             })
         });
 
         const json = await res.json();
-        let content = json.choices[0].message.content;
-        
-        // Remove <think> tags from DeepSeek
-        content = content.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-        // Extract JSON string
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        
-        if(jsonMatch) {
-            const plan = JSON.parse(jsonMatch[0]);
-            s.aiPlan = plan; // Save to state
-            renderUI(); // Re-render to show AI box
+        const content = json.choices[0].message.content.replace(/<think>.*<\/think>/s, "");
+        const plan = JSON.parse(content.match(/\{.*\}/s)[0]);
+
+        if(plan.action !== "WAIT" && plan.conf > 75) {
+            showSniperPanel(target.s, plan);
         }
 
-    } catch(e) {
-        console.error(e);
-        $("errBox").innerText = "AI Error: " + e.message;
-        $("errBox").classList.remove("hidden");
-    } finally {
-        isAiRunning = false;
-        $("btnAuto").innerText = `AUTO: ${autoAI?"ON":"OFF"}`;
-    }
+    } catch(e) { console.error(e); }
+    
+    isAiBusy = false;
+    $("btnAuto").innerText = "AI AUTO: ON";
 }
 
-// LOOP
-window.onload = () => {
-    $("apiKey").value = GROQ_KEY;
-    initUniverse();
-    setInterval(renderUI, 1000); // 1s UI refresh
+function showSniperPanel(sym, plan) {
+    const p = $("sniperPanel");
+    p.style.display = "block";
     
-    // Auto AI Loop
-    setInterval(() => {
-        if(autoAI && !isAiRunning && topCandidates.length > 0) {
-            runDeepSeekAnalysis(topCandidates[0]);
-        }
-    }, 15000); // Check every 15s
-};
+    $("aiSym").innerText = sym;
+    $("aiSide").innerText = plan.action;
+    $("aiSide").className = plan.action === "LONG" ? "tag tag-l text-lg align-middle" : "tag tag-s text-lg align-middle";
+    
+    $("aiEntry").innerText = plan.entry;
+    $("aiTp").innerText = plan.tp;
+    $("aiSl").innerText = plan.sl;
+    $("aiConf").innerText = plan.conf + "%";
+    $("aiReason").innerText = plan.reason;
+    
+    // Play sound or flash effect here if needed
+}
 
+function toggleAuto() {
+    isAuto = !isAuto;
+    GROQ_KEY = $("apiKey").value;
+    localStorage.setItem("V9_KEY", GROQ_KEY);
+    $("btnAuto").classList.toggle("btn-act", isAuto);
+    $("btnAuto").innerText = isAuto ? "AI AUTO: ON" : "AI AUTO: OFF";
+}
+
+window.onload = init;
 </script>
 </body>
 </html>
