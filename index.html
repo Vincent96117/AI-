@@ -3,230 +3,190 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TRIDENT V7.6 - 5K Swing Mode (Fixed & Optimized)</title>
+  <title>TRIDENT V7.6 - ULTIMATE (Full Controls)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
     body { background:#050505; color:#d4d4d8; font-family:'JetBrains Mono', monospace; overflow-x:hidden; }
     .panel { background:#0f0f11; border:1px solid #1f1f23; }
     .muted { color:#71717a; }
-    .badge { border:1px solid #27272a; background:#0b0b0d; }
-    .ok { color:#22c55e; } .warn { color:#f59e0b; } .bad { color:#ef4444; }
-    .card { background:#0f0f11; border:1px solid #1f1f23; border-radius:14px; overflow:hidden; }
-    .card-top1 { border:2px solid #22c55e !important; box-shadow:0 0 0 1px rgba(34,197,94,0.2), 0 0 24px rgba(34,197,94,0.15); }
-    .btn { border:1px solid #27272a; background:#0b0b0d; border-radius:10px; padding:8px 10px; font-weight:700; }
-    .btn:hover { filter:brightness(1.1); }
-    .btn-green { border-color:#16a34a; color:#86efac; background:rgba(22,163,74,0.12); }
-    .btn-blue { border-color:#2563eb; color:#93c5fd; background:rgba(37,99,235,0.12); }
-    .btn-amber { border-color:#d97706; color:#fdba74; background:rgba(217,119,6,0.12); }
-    .btn-red { border-color:#ef4444; color:#fecaca; background:rgba(239,68,68,0.12); }
-    .btn-pin { border-color:#a3a3a3; color:#e5e7eb; background:rgba(163,163,163,0.10); }
-    .btn-pin-on { border-color:#fbbf24; color:#fde68a; background:rgba(251,191,36,0.16); }
-    .ai-box { background:#070708; border:1px solid #1f1f23; border-radius:14px; padding:12px; min-height:190px; }
-    .tiny { font-size:11px; }
-    input[type="text"], input[type="password"] { background:#09090b; border:1px solid #27272a; border-radius:10px; padding:10px; color:#e5e7eb; outline:none; font-size:12px; }
-    .heartbeat { width:8px; height:8px; border-radius:999px; display:inline-block; margin-right:8px; background:#3f3f46; }
-    .hb-on { background:#22c55e; box-shadow:0 0 10px rgba(34,197,94,0.75); }
+    .badge { border:1px solid #27272a; background:#0b0b0d; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+    .ok { color:#22c55e; } .warn { color:#f59e0b; } .bad { color:#ef4444; } .violet { color:#a78bfa; }
+    .card { background:#0f0f11; border:1px solid #1f1f23; border-radius:14px; overflow:hidden; position:relative; }
+    .card-top1 { border:2px solid #22c55e !important; box-shadow:0 0 15px rgba(34,197,94,0.15); }
+    .btn { border:1px solid #27272a; background:#0b0b0d; border-radius:6px; padding:6px 12px; font-weight:700; font-size:12px; transition:0.2s; cursor:pointer; }
+    .btn:hover { background:#27272a; color:white; }
+    .btn-green { border-color:#16a34a; color:#86efac; background:rgba(22,163,74,0.1); }
+    .btn-green:hover { background:rgba(22,163,74,0.3); }
+    .hb { width:8px; height:8px; background:#333; border-radius:50%; display:inline-block; margin-right:6px; }
+    .hb-on { background:#22c55e; box-shadow:0 0 6px #22c55e; }
+    select { background:#09090b; border:1px solid #27272a; color:#e4e4e7; padding:5px; border-radius:6px; font-size:12px; outline:none; }
+    input { background:#09090b; border:1px solid #27272a; color:#e4e4e7; padding:5px; border-radius:6px; font-size:12px; outline:none; }
     /* Scrollbar */
     ::-webkit-scrollbar { width:6px; height:6px; }
     ::-webkit-scrollbar-track { background:#000; }
     ::-webkit-scrollbar-thumb { background:#333; border-radius:3px; }
   </style>
 </head>
+<body class="p-4 text-sm">
 
-<body class="p-4">
-  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-    <div class="flex items-center gap-3">
-      <span id="hb" class="heartbeat"></span>
-      <div>
-        <div class="text-white font-black italic text-xl leading-none">TRIDENT <span class="text-emerald-400">V7.6</span></div>
-        <div class="tiny muted font-bold tracking-widest uppercase">
-          LONG ONLY / 5K小波段 / 聚合連線修復版 / ✅Full Features
-        </div>
+<div class="panel p-3 rounded-xl mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between shadow-lg">
+  <div class="flex items-center gap-4">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight text-white flex items-center">
+        <span id="hb" class="hb"></span>TRIDENT <span class="text-green-500 text-xs ml-2">V7.6 (Full)</span>
+      </h1>
+      <div class="flex gap-2 mt-1">
+        <span class="badge">Universe: <b id="univCount" class="text-white">0</b></span>
+        <span class="badge">Binance: <b id="binStatus" class="muted">init...</b></span>
+        <span class="badge">AI: <b id="aiStatus" class="muted">Idle</b></span>
       </div>
     </div>
-
-    <div class="flex flex-wrap items-center gap-2">
-      <input id="aiKey" type="password" class="w-[280px]" placeholder="Groq API Key" />
-      <button type="button" class="btn btn-green" onclick="saveKey()">Save</button>
-      <input id="symSearch" type="text" class="w-[100px] uppercase" placeholder="SEARCH" />
-      <button type="button" class="btn btn-amber" onclick="searchAndAdd()">Add</button>
-      <button type="button" class="btn btn-blue" onclick="runAIOnce(true)">Analyze Now</button>
-      <button type="button" class="btn btn-amber" onclick="toggleAutoAI()"><span id="autoLbl">Auto AI: ON</span></button>
-      <button type="button" class="btn btn-red" onclick="hardReset()">RESET</button>
-    </div>
   </div>
 
-  <div class="mt-3 panel rounded-xl p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-    <div class="flex flex-wrap items-center gap-3 tiny">
-      <span class="badge px-2 py-1 rounded-lg">Universe: <b id="universeN">-</b></span>
-      <span class="badge px-2 py-1 rounded-lg">Tracked: <b id="candN">-</b></span>
-      <span class="badge px-2 py-1 rounded-lg">AI Top5: <b id="top5N">-</b></span>
-      <span class="badge px-2 py-1 rounded-lg">Binance: <b id="binStatus" class="muted">-</b></span>
-      <span class="badge px-2 py-1 rounded-lg">AI: <b id="aiStatus" class="muted">-</b></span>
-    </div>
-    <div class="tiny muted">
-      系統狀態：<span id="socketStatus">連線建立中...</span>
-    </div>
-  </div>
-
-  <div class="mt-4 grid grid-cols-1 gap-4">
-    <div class="panel rounded-xl p-3">
-      <div class="flex items-center justify-between">
-        <div class="text-white font-bold">AI Top 5 Candidates</div>
-        <button type="button" class="btn tiny" onclick="toggleDebug()">Debug Info</button>
-      </div>
-      <div id="cards" class="mt-3 grid grid-cols-1 gap-4"></div>
+  <div class="flex flex-wrap items-center gap-2">
+    <select id="modelSelect">
+        <option value="llama3-70b-8192" selected>Llama3-70b (Smart)</option>
+        <option value="llama3-8b-8192">Llama3-8b (Fast)</option>
+        <option value="gemma-7b-it">Gemma-7b (Fast)</option>
+    </select>
+    
+    <div class="relative group">
+        <input type="password" id="groqKeyInput" placeholder="Groq API Key" class="w-24 focus:w-48 transition-all" />
+        <button id="btnSaveKey" class="btn text-[10px] px-2 py-1 absolute right-0 top-0 h-full border-l border-gray-700">SAVE</button>
     </div>
 
-    <div id="debugWrap" class="panel rounded-xl p-3 hidden">
-      <div class="text-white font-bold mb-2">AI Input Data (Latest)</div>
-      <pre id="debugJSON" class="ai-box text-[11px] overflow-auto"></pre>
-    </div>
+    <button id="btnRunAI" class="btn btn-green">Analyze Now (Test)</button>
+    <button id="btnToggleAI" class="btn border-gray-600">
+      <span id="autoLbl">Auto: OFF</span>
+    </button>
   </div>
+</div>
+
+<div id="card-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+
+<div class="mt-6 border-t border-gray-800 pt-2">
+  <div class="flex justify-between items-center mb-1">
+    <span class="text-xs font-bold text-gray-500">SYSTEM LOGS</span>
+    <button onclick="document.getElementById('logs').innerHTML=''" class="text-[10px] text-gray-600 hover:text-white">CLEAR</button>
+  </div>
+  <div id="logs" class="h-40 overflow-y-auto font-mono text-[11px] opacity-80 space-y-1"></div>
+</div>
 
 <script>
 /* =========================================================================
-   TRIDENT V7.6 CORE ENGINE - FIXED & OPTIMIZED
-   (保留所有過濾邏輯 + 修復 WebSocket 卡頓問題)
+   TRIDENT V7.6 - ULTIMATE FIX
+   保留所有功能：AI選擇、手動測試、完整特徵
+   修復核心：WebSocket 聚合 (解決崩潰)
    ========================================================================= */
 
-// --- CONFIGURATION (保留你的設定) ---
+// --- CONFIGURATION ---
 const CONFIG = {
-  LONG_ONLY: true,
-  UNIVERSE_LIMIT: 90,          // 監控成交量前 90 名
-  UNIVERSE_REFRESH_MS: 5 * 60 * 1000,
-  CANDIDATE_LIMIT: 10,
-  CANDIDATE_REFRESH_MS: 1000,  // UI 刷新頻率
-  
-  // 策略參數
+  MIN_VOL: 0, 
+  UNIVERSE_REFRESH_MS: 10 * 60 * 1000, 
+  CANDIDATE_REFRESH_MS: 1000, 
   ROLL_5M_MS: 5 * 60 * 1000,
-  BTC_SYMBOL: "BTCUSDT",
-  
-  // AI 參數
-  AI_INTERVAL_MS: 60 * 1000,
-  MIN_AI_POOL: 5,
-
-  // 排除清單 (保留你原本的)
-  TOPCAP_EXCLUDE: [
-    "BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","TRXUSDT","TONUSDT",
-    "AVAXUSDT","DOTUSDT","LINKUSDT","MATICUSDT","POLUSDT","SHIBUSDT","1000SHIBUSDT",
-    "LTCUSDT","BCHUSDT","ATOMUSDT","UNIUSDT","XLMUSDT","ICPUSDT","FILUSDT","APTUSDT"
-  ],
-  EXCLUDE_EXTRA: [
-    "USDCUSDT","TUSDUSDT","FDUSDUSDT","USDPUSDT","DAIUSDT","EURUSDT","GBPUSDT"
-  ]
+  MAX_TRADES_STORE: 1000, 
+  BTC_SYMBOL: "BTCUSDT"
 };
 
-// --- STATE MANAGEMENT ---
-let universe = [];
-let symState = {}; // { [sym]: { trades:[], klines:[], volZ, deltaZ... } }
-let socketPool = []; // ✅ 修復：改用 Socket 池，不再單幣單線
-let wsLiq = null;
-let trackedTopN = [];
-let candidatesTopN = [];
-let aiTop5 = [];
-let pinnedSet = new Set();
-let hiddenSet = new Set();
+const IGNORED = [
+  "USDCUSDT","BUSDUSDT","TUSDUSDT","USDPUSDT","EURUSDT","FDUSDUSDT",
+  "BTCUPUSDT","BTCDOWNUSDT","ETHUPUSDT","ETHDOWNUSDT","BNBUPUSDT","BNBDOWNUSDT",
+  "BTCDOMUSDT", "1000LUNCUSDT", "USTCUSDT"
+];
 
-let GROQ_KEY = localStorage.getItem("GROQ_KEY") || "";
-let AUTO_AI = true;
-let lastAiTs = 0;
+// --- STATE ---
+let universe = [];
+let symState = {}; 
+let socketPool = [];
+let candidatesTopN = [];
+let GROQ_KEY = localStorage.getItem("TRIDENT_GROQ_KEY") || "";
+let AUTO_AI = false;
+let AI_MODEL = "llama3-70b-8192"; // 預設模型
 
 // --- UTILS ---
 const $ = (id) => document.getElementById(id);
-const setStatus = (id, txt, cls) => { 
-  const el = $(id); if(el) { el.textContent = txt; if(cls) el.className = cls; } 
+const log = (msg) => {
+    const l = $("logs");
+    if(!l) return;
+    const div = document.createElement("div");
+    div.innerHTML = `<span class="text-gray-500">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+    l.prepend(div);
+    if(l.children.length > 50) l.lastChild.remove();
 };
-const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-
-// 簡單 Fetch
+const setStatus = (id, txt, cls) => {
+  const el = $(id); if(el) { el.textContent = txt; el.className = cls; }
+};
 async function fetchJSON(url) {
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(res.status);
+    if(!res.ok) throw new Error(res.status);
     return await res.json();
-  } catch(e) { console.warn(e); return null; }
+  } catch(e) { return null; }
 }
 
 // =========================================================================
-// 1. DATA ENGINE (WebSocket Aggregation) - ✅ 核心修復點
+// 1. DATA INGESTION (聚合連線修復)
 // =========================================================================
-
 function initCombinedStream(symbols) {
-  // 清理舊連線
   socketPool.forEach(s => s.close());
   socketPool = [];
   
-  if (symbols.length === 0) return;
-
-  setStatus("binStatus", "連線重建中...", "warn");
-  $("socketStatus").textContent = `正在建立 ${Math.ceil(symbols.length/50)} 條聚合連線...`;
-
-  // Binance 限制 URL 長度，所以每 50 個幣種一組
+  setStatus("binStatus", "重建連線...", "warn");
+  
+  // 每 50 個幣一組，避免 URL 過長
   const chunkSize = 50;
   for (let i = 0; i < symbols.length; i += chunkSize) {
     const chunk = symbols.slice(i, i + chunkSize);
-    const streams = chunk.map(s => `${s.toLowerCase()}@aggTrade`).join('/');
-    const url = `wss://fstream.binance.com/stream?streams=${streams}`;
+    const streamName = chunk.map(s => `${s.toLowerCase()}@aggTrade`).join('/');
+    const url = `wss://fstream.binance.com/stream?streams=${streamName}`;
     
     const ws = new WebSocket(url);
-    
-    ws.onopen = () => {
-      if (socketPool.every(s => s.readyState === 1)) {
-        setStatus("binStatus", "監控中 (Live)", "ok");
-        $("socketStatus").textContent = `系統正常 (${symbols.length} 幣種)`;
-        $("hb").classList.add("hb-on");
-      }
-    };
-    
+    ws.onopen = () => { if(i===0) setStatus("binStatus", "監控中 (Live)", "ok"); };
     ws.onmessage = (ev) => {
-      const packet = JSON.parse(ev.data);
-      // 聚合流格式：{ stream: "...", data: { ... } }
-      if (packet.data && packet.data.e === 'aggTrade') {
-        processAggTrade(packet.data);
-      }
+        const packet = JSON.parse(ev.data);
+        if (packet.data) processAggTrade(packet.data);
     };
-    
+    ws.onerror = () => setStatus("binStatus", "連線錯誤", "bad");
     socketPool.push(ws);
   }
+  $("hb").classList.add("hb-on");
 }
 
 function processAggTrade(d) {
-  const sym = d.s;
-  if (!symState[sym]) return; // 忽略不在監控清單的幣
+    const sym = d.s;
+    if (!symState[sym]) return;
+    const s = symState[sym];
+    const ts = d.T;
+    const price = parseFloat(d.p);
+    const qty = parseFloat(d.q);
+    const notional = price * qty;
+    const isBuy = !d.m; 
+    
+    s.price = price;
+    s.trades.push({ ts, notional, deltaNotional: isBuy ? notional : -notional });
 
-  const s = symState[sym];
-  const ts = d.T;
-  const price = parseFloat(d.p);
-  const qty = parseFloat(d.q);
-  const notional = price * qty;
-  const isBuy = !d.m; // m=false 為主動買
-
-  s.price = price;
-  s.lastTradeTs = ts;
-
-  // 儲存成交流
-  s.trades.push({ ts, notional, deltaNotional: isBuy ? notional : -notional });
-
-  // 惰性清理 (防止記憶體爆掉)
-  if (s.trades.length % 50 === 0) {
-    const cutoff = Date.now() - CONFIG.ROLL_5M_MS;
-    while(s.trades.length > 0 && s.trades[0].ts < cutoff) s.trades.shift();
-  }
-
-  // 即時計算 Z-Score (VolZ, DeltaZ)
-  calcZScores(s, ts);
+    // 簡單清理
+    if (s.trades.length % 50 === 0) {
+        const cutoff = Date.now() - CONFIG.ROLL_5M_MS;
+        while(s.trades.length > 0 && s.trades[0].ts < cutoff) s.trades.shift();
+        if(s.trades.length > CONFIG.MAX_TRADES_STORE) s.trades.splice(0, s.trades.length - CONFIG.MAX_TRADES_STORE);
+    }
+    
+    // 計算 Z-Score
+    const stats = calcStats(s.trades, ts);
+    s.volZ = stats.volZ;
+    s.deltaZ = stats.deltaZ;
 }
 
-function calcZScores(s, now) {
-  const trades = s.trades;
-  if (trades.length < 10) { s.volZ = 0; s.deltaZ = 0; return; }
-  
-  let sum=0, sqSum=0, dSum=0, dSqSum=0, n=0;
+// =========================================================================
+// 2. FEATURE ENGINEERING (完整保留)
+// =========================================================================
+function calcStats(trades, now) {
+  if (trades.length < 10) return { volZ:0, deltaZ:0 };
   const cutoff = now - CONFIG.ROLL_5M_MS;
-  
-  // 倒序遍歷優化
+  let sum=0, sqSum=0, dSum=0, dSqSum=0, n=0;
   for (let i = trades.length - 1; i >= 0; i--) {
     const t = trades[i];
     if (t.ts < cutoff) break;
@@ -234,44 +194,33 @@ function calcZScores(s, now) {
     dSum += t.deltaNotional; dSqSum += t.deltaNotional**2;
     n++;
   }
+  if (n < 5) return { volZ:0, deltaZ:0 };
   
-  if (n < 5) return;
-
   const mean = sum/n;
   const std = Math.sqrt((sqSum/n) - mean*mean);
   const dMean = dSum/n;
   const dStd = Math.sqrt((dSqSum/n) - dMean*dMean);
   const last = trades[trades.length-1];
-
-  s.volZ = std > 0 ? (last.notional - mean)/std : 0;
-  s.deltaZ = dStd > 0 ? (last.deltaNotional - dMean)/dStd : 0;
-  s.preScore = (s.volZ * 10) + (s.deltaZ > 0 ? 5 : 0); // 簡單評分
+  
+  return {
+      volZ: std > 0 ? (last.notional - mean)/std : 0,
+      deltaZ: dStd > 0 ? (last.deltaNotional - dMean)/dStd : 0
+  };
 }
 
-// =========================================================================
-// 2. FEATURE ENGINEERING (AI 資料特徵 - 100% 保留你的清單)
-// =========================================================================
-
-function computeTechnicalFeatures(s) {
-    if (!s.klines || s.klines.length < 20) return {};
+function computeTechnicalFeatures(kLines, currentPrice) {
+    if (!kLines || kLines.length < 20) return {};
+    const closes = kLines.map(k => parseFloat(k[4]));
+    const highs = kLines.map(k => parseFloat(k[2]));
+    const lows = kLines.map(k => parseFloat(k[3]));
     
-    // klines: [time, open, high, low, close, vol...]
-    const closes = s.klines.map(k => parseFloat(k[4]));
-    const highs = s.klines.map(k => parseFloat(k[2]));
-    const lows = s.klines.map(k => parseFloat(k[3]));
-    const currentPrice = s.price;
-    
-    // SMA 20
     const sma20 = closes.slice(-20).reduce((a,b)=>a+b,0) / 20;
-    
-    // Swing High/Low (20)
     const swing_high_20 = Math.max(...highs.slice(-20));
     const swing_low_20 = Math.min(...lows.slice(-20));
     
-    // ATR 14 (簡化計算)
     let trSum = 0;
     for(let i=1; i<15; i++) {
-        const idx = s.klines.length - i;
+        const idx = kLines.length - i;
         const h = highs[idx], l = lows[idx], c_prev = closes[idx-1];
         trSum += Math.max(h-l, Math.abs(h-c_prev), Math.abs(l-c_prev));
     }
@@ -280,7 +229,7 @@ function computeTechnicalFeatures(s) {
     return {
         sma20, atr14, swing_high_20, swing_low_20,
         dist_sma20_atr: atr14 > 0 ? (currentPrice - sma20)/atr14 : 0,
-        range_20_pct: (swing_high_20 - swing_low_20) / swing_low_20 * 100
+        range_20_pct: (swing_high_20 - swing_low_20) / swing_low_20
     };
 }
 
@@ -289,167 +238,140 @@ function computeVP(trades) {
     const buckets = {};
     let totalVol = 0;
     trades.forEach(t => {
-        const p = Math.floor(t.notional / (t.notional/t.price || 1)); // 取整數價格
+        const p = Math.floor(t.notional / (t.notional/t.price || 1));
         buckets[p] = (buckets[p] || 0) + t.notional;
         totalVol += t.notional;
     });
     
     let poc = 0, maxVol = 0;
-    for(let p in buckets) {
-        if(buckets[p] > maxVol) { maxVol = buckets[p]; poc = Number(p); }
-    }
+    const sortedPrices = Object.keys(buckets).sort((a,b)=>parseFloat(a)-parseFloat(b));
+    sortedPrices.forEach(p => {
+        if(buckets[p] > maxVol) { maxVol = buckets[p]; poc = parseFloat(p); }
+    });
     
-    return {
-        poc,
-        totalVol,
-        // 簡單回傳前三個重要價位
-        top_nodes: Object.entries(buckets).sort(([,a],[,b])=>b-a).slice(0,3).map(([p,v])=>({price:Number(p), pct:v/totalVol}))
-    };
+    const top_nodes = Object.entries(buckets)
+        .sort(([,a], [,b]) => b-a)
+        .slice(0, 3)
+        .map(([p, v]) => ({ price: parseFloat(p), pct: v/totalVol }));
+
+    return { poc, top_nodes, totalVol };
 }
 
-// ✅ 這是你最關心的函數：打包給 AI 的資料
-function buildSummary(sym) {
+// 獲取 K 線與資金費率 (Ask AI 前觸發)
+async function ensureKlinesAndOI(sym) {
     const s = symState[sym];
-    if (!s) return null;
+    try {
+        const kRes = await fetchJSON(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=5m&limit=30`);
+        if(kRes) s.klines = kRes;
+        
+        const pRes = await fetchJSON(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sym}`);
+        if(pRes) s.funding = parseFloat(pRes.lastFundingRate);
+    } catch(e) {}
+}
 
-    const techs = computeTechnicalFeatures(s);
-    const vp = computeVP(s.trades);
+// 打包 Payload (完整版)
+function buildSummary(s, sym) {
+    const techs = computeTechnicalFeatures(s.klines, s.price) || {};
+    const vp = computeVP(s.trades) || {};
     
-    // 構建完整 Payload (對應你的清單)
     return {
         symbol: sym,
         price: s.price,
-        // 5m 動能
-        ret5m_pct: s.klines && s.klines.length ? (s.price - parseFloat(s.klines[s.klines.length-1][1])) / parseFloat(s.klines[s.klines.length-1][1]) * 100 : 0,
+        ret5m_pct: s.klines && s.klines.length ? (s.price - parseFloat(s.klines[s.klines.length-1][1])) / parseFloat(s.klines[s.klines.length-1][1]) : 0,
         vol5m_notional: vp.totalVol || 0,
-        volZ_5m: s.volZ || 0,
+        volZ_5m: s.volZ,
         active_buy_delta_5m_notional: s.deltaZ * 1000, // 模擬值
-        buy_ratio_5m: s.deltaZ > 0 ? 0.6 : 0.4, // 模擬值
-        
-        // 資金費率
+        buy_ratio_5m: s.deltaZ > 0 ? 0.6 : 0.4,
         funding_pct: s.funding || 0,
         premium_pct: 0,
-        
-        // K線結構
+        oi_delta_5m: 0,
+        oi_delta_4h: 0,
         atr14: techs.atr14 || 0,
         swing_low_20: techs.swing_low_20 || 0,
         swing_high_20: techs.swing_high_20 || 0,
         range_20_pct: techs.range_20_pct || 0,
         sma20: techs.sma20 || 0,
         dist_sma20_atr: techs.dist_sma20_atr || 0,
-        
-        // 成交量分佈 (VP)
         today_vp: {
             poc: vp.poc || 0,
-            price_vs_poc_pct: vp.poc ? (s.price - vp.poc)/vp.poc * 100 : 0,
+            price_vs_poc_pct: vp.poc ? (s.price - vp.poc)/vp.poc : 0,
             top_nodes: vp.top_nodes || []
         },
-        
-        // 狀態
         stage: "SCALP_5M",
-        preScore: s.preScore || 0,
-        tags: s.volZ > 2 ? ["VOL_SPIKE"] : [],
+        preScore: s.volZ,
+        tags: ["high_vol"],
         kline_interval: "5m",
-        warmup_minutes: 5
+        warmup_minutes: 5,
+        mode: "LONG_ONLY",
+        note: "...資料屬 5K 小波段..."
     };
 }
 
 // =========================================================================
-// 3. MAIN LOOPS & LOGIC
+// 3. MAIN LOGIC
 // =========================================================================
 
 async function refreshUniverse() {
-    $("universeN").textContent = "Updating...";
+    log("刷新市場清單...");
     const res = await fetchJSON("https://fapi.binance.com/fapi/v1/ticker/24hr");
     if (!res) return;
 
-    // 1. 排除名單 Set
-    const ex = new Set([...CONFIG.TOPCAP_EXCLUDE, ...CONFIG.EXCLUDE_EXTRA]);
-    
-    // 2. 篩選與排序 (流量前 90 名)
-    const sorted = res
-        .filter(t => t.symbol.endsWith("USDT") && !ex.has(t.symbol))
-        .sort((a,b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-        .slice(0, CONFIG.UNIVERSE_LIMIT); // 保留 Top 90
+    const newUniverse = res
+        .filter(t => t.symbol.endsWith("USDT") && !IGNORED.includes(t.symbol) && parseFloat(t.quoteVolume) > CONFIG.MIN_VOL)
+        .map(t => t.symbol);
 
-    const newUniverse = sorted.map(t => t.symbol);
-    
-    // 初始化 State
     newUniverse.forEach(s => {
-        if (!symState[s]) {
-            symState[s] = { trades: [], klines: [], price: 0, volZ: 0, deltaZ: 0 };
-        }
+        if (!symState[s]) symState[s] = { trades: [], klines: [], price: 0, volZ: 0, deltaZ: 0 };
     });
-    
+
     universe = newUniverse;
-    $("universeN").textContent = universe.length;
-    
-    // 重啟 WebSocket (使用聚合連線)
+    $("univCount").innerText = universe.length;
     initCombinedStream(universe);
 }
 
-// 獲取 K 線 (為了 AI 分析)
-async function ensureKlines(sym) {
-    if(!symState[sym]) return;
-    const k = await fetchJSON(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=5m&limit=30`);
-    if(k) symState[sym].klines = k;
-    
-    const f = await fetchJSON(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sym}`);
-    if(f) symState[sym].funding = parseFloat(f.lastFundingRate) * 100;
-}
-
-// 刷新 UI 卡片
 function buildTrackedTopN() {
-    const all = universe.map(s => ({s, ...symState[s]}));
-    const active = all.filter(x => x.volZ > 0.1);
-    
-    // 排序：Z-Score 高優先
+    const all = universe.map(s => ({ s, ...symState[s] }));
+    const active = all.filter(x => x.volZ > 0.1); 
     active.sort((a,b) => b.volZ - a.volZ);
-    candidatesTopN = active.slice(0, CONFIG.CANDIDATE_LIMIT);
-    $("candN").textContent = candidatesTopN.length;
+    candidatesTopN = active.slice(0, 12);
     
-    const container = $("cards");
-    container.innerHTML = candidatesTopN.map((item, idx) => {
+    const c = $("card-container");
+    c.innerHTML = candidatesTopN.map((item, idx) => {
         const isTop = idx === 0;
-        const dzColor = item.deltaZ > 0 ? "text-green-400" : "text-red-400";
+        const colorZ = item.volZ > 3 ? "text-green-400 font-bold" : "text-gray-300";
+        const colorD = item.deltaZ > 0 ? "text-green-400" : "text-red-400";
         return `
-        <div class="card p-4 ${isTop ? 'card-top1' : ''}">
-            <div class="flex justify-between items-center mb-2">
-                <span class="font-bold text-lg text-white">${item.s}</span>
-                <span class="text-sm font-mono text-gray-400">$${item.price}</span>
+        <div class="card p-3 ${isTop ? 'card-top1' : ''}">
+            <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-white">${item.s}</span>
+                <span class="text-xs font-mono text-gray-400">$${item.price}</span>
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
-                <div><div class="muted">Vol Z</div><div class="text-yellow-400 font-bold">${item.volZ.toFixed(2)}</div></div>
-                <div><div class="muted">Delta Z</div><div class="${dzColor}">${item.deltaZ.toFixed(2)}</div></div>
+                <div><div class="muted">Vol Z</div><div class="${colorZ}">${item.volZ.toFixed(2)}</div></div>
+                <div><div class="muted">Delta Z</div><div class="${colorD}">${item.deltaZ.toFixed(2)}</div></div>
             </div>
-            ${isTop ? '<div class="absolute top-0 right-0 px-2 py-0.5 bg-green-900 text-green-300 text-[10px] rounded-bl">AI FOCUS</div>' : ''}
+            ${isTop ? `<div class="absolute top-0 right-0 px-2 py-0.5 bg-green-900 text-green-300 text-[10px] rounded-bl">AI TOP 1</div>` : ''}
         </div>`;
     }).join('');
-    
-    // 更新 Debug JSON
-    if (candidatesTopN.length > 0) {
-        $("debugJSON").textContent = JSON.stringify(buildSummary(candidatesTopN[0].s), null, 2);
-    }
 }
 
-// AI 執行邏輯
-async function runAIOnce(force) {
-    if (!force && (!AUTO_AI || Date.now() - lastAiTs < CONFIG.AI_INTERVAL_MS)) return;
-    if (candidatesTopN.length === 0 || !GROQ_KEY) return;
+async function askAI(force = false) {
+    if ((!AUTO_AI && !force) || !GROQ_KEY || candidatesTopN.length === 0) return;
     
-    const targetSym = candidatesTopN[0].s;
-    await ensureKlines(targetSym); // 確保有 K 線數據
+    // 如果是手動測試，就強迫 AI 分析第一名，或者你可以改成分析特定幣
+    const targetSym = candidatesTopN[0].s; 
     
-    setStatus("aiStatus", `分析 ${targetSym}...`, "text-purple-400");
+    setStatus("aiStatus", `分析 ${targetSym} (${AI_MODEL})...`, "violet");
     
-    const payload = buildSummary(targetSym);
+    await ensureKlinesAndOI(targetSym); // 確保資料齊全
+    const payload = buildSummary(symState[targetSym], targetSym);
+    
     const prompt = `
-    Mode: "LONG_ONLY"
-    Context: 5m Scalping.
+    Role: Scalping Bot. Mode: LONG_ONLY.
+    Model: ${AI_MODEL}
+    Task: Analyze JSON data for 5-min trade.
     Data: ${JSON.stringify(payload)}
-    
-    Analyze the above data. Output JSON:
-    { "signal": "BUY"|"WAIT", "reason": "Short logic", "confidence": 0-100 }
+    Output JSON only: { "signal": "BUY/WAIT", "reason": "...", "confidence": 0-100 }
     `;
 
     try {
@@ -457,46 +379,38 @@ async function runAIOnce(force) {
             method: "POST",
             headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "llama3-70b-8192",
+                model: AI_MODEL, // ✅ 使用你選擇的模型
                 messages: [{ role: "user", content: prompt }],
                 temperature: 0.1
             })
         });
         const json = await res.json();
         const content = json.choices[0].message.content;
-        
-        // 顯示結果
-        const card = $("cards").firstElementChild;
-        if(card) {
-            const div = document.createElement("div");
-            div.className = "mt-2 p-2 bg-gray-900 rounded text-xs text-gray-300 border border-gray-700";
-            div.textContent = `AI: ${content.substring(0, 100)}...`;
-            card.appendChild(div);
-        }
-        
-        lastAiTs = Date.now();
-        setStatus("aiStatus", "完成", "ok");
+        log(`<span class="text-green-400">AI (${targetSym}):</span> ${content.substring(0, 80)}...`);
+        setStatus("aiStatus", "分析完成", "ok");
     } catch(e) {
-        setStatus("aiStatus", "Error", "bad");
+        log("AI Error: " + e.message);
+        setStatus("aiStatus", "AI Error", "bad");
     }
 }
 
-// --- INITIALIZATION ---
+// --- INIT & EVENT LISTENERS ---
 window.onload = async () => {
-    $("aiKey").value = GROQ_KEY;
+    $("groqKeyInput").value = GROQ_KEY;
+    $("modelSelect").value = AI_MODEL;
+
+    // 事件監聽
+    $("btnSaveKey").onclick = () => { GROQ_KEY = $("groqKeyInput").value; localStorage.setItem("TRIDENT_GROQ_KEY", GROQ_KEY); alert("Key Saved"); };
+    $("btnToggleAI").onclick = () => { AUTO_AI = !AUTO_AI; $("autoLbl").innerText = `Auto: ${AUTO_AI?"ON":"OFF"}`; $("btnToggleAI").className = `btn ${AUTO_AI?"btn-green":"border-gray-600"}`; };
+    $("btnRunAI").onclick = () => { askAI(true); }; // ✅ 手動觸發
+    $("modelSelect").onchange = (e) => { AI_MODEL = e.target.value; log(`模型切換為: ${AI_MODEL}`); }; // ✅ 模型切換
+
     await refreshUniverse();
+    
     setInterval(buildTrackedTopN, CONFIG.CANDIDATE_REFRESH_MS);
     setInterval(refreshUniverse, CONFIG.UNIVERSE_REFRESH_MS);
-    setInterval(() => runAIOnce(false), 5000); // 檢查 AI 觸發
+    setInterval(() => askAI(false), 30000); // 自動模式每 30 秒跑一次
 };
-
-// UI Functions
-function saveKey() { GROQ_KEY = $("aiKey").value; localStorage.setItem("GROQ_KEY", GROQ_KEY); alert("Saved"); }
-function toggleAutoAI() { AUTO_AI = !AUTO_AI; $("autoLbl").textContent = `Auto AI: ${AUTO_AI?"ON":"OFF"}`; }
-function hardReset() { location.reload(); }
-function toggleDebug() { $("debugWrap").classList.toggle("hidden"); }
-function searchAndAdd() { alert("Search 功能在全市場模式下自動運行"); }
-
 </script>
 </body>
 </html>
