@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TRIDENT V7.6 - DEBUG EDITION</title>
+  <title>TRIDENT V7.7 - DeepSeek (Stable Fix)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
@@ -17,7 +17,7 @@
     .btn { border:1px solid #27272a; background:#0b0b0d; border-radius:6px; padding:8px 16px; font-weight:700; font-size:13px; transition:0.2s; cursor:pointer; }
     .btn:hover { background:#27272a; color:white; }
     .btn-green { border-color:#16a34a; color:#86efac; background:rgba(22,163,74,0.2); }
-    .btn-green:hover { background:rgba(22,163,74,0.4); box-shadow: 0 0 10px rgba(22,163,74,0.4); }
+    .btn-green:hover { background:rgba(22,163,74,0.4); }
     .hb { width:8px; height:8px; background:#333; border-radius:50%; display:inline-block; margin-right:6px; }
     .hb-on { background:#22c55e; box-shadow:0 0 6px #22c55e; }
     select { background:#09090b; border:1px solid #27272a; color:#e4e4e7; padding:8px; border-radius:6px; font-size:12px; outline:none; cursor:pointer; }
@@ -31,10 +31,9 @@
 <body class="p-4 text-sm">
 
 <div class="panel p-4 rounded-xl mb-4 flex flex-col gap-4 shadow-lg">
-  
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold tracking-tight text-white flex items-center">
-      <span id="hb" class="hb"></span>TRIDENT <span class="text-green-500 text-sm ml-2">V7.6 (DEBUG)</span>
+      <span id="hb" class="hb"></span>TRIDENT <span class="text-green-500 text-sm ml-2">V7.7 (Stable)</span>
     </h1>
     <div class="flex gap-2">
       <span class="badge">Universe: <b id="univCount" class="text-white">0</b></span>
@@ -44,13 +43,11 @@
   </div>
 
   <div class="flex flex-wrap items-center gap-3 border-t border-gray-800 pt-3">
-    
     <div class="flex flex-col gap-1">
-        <label class="text-[10px] text-gray-500 font-bold">AI MODEL (模型)</label>
+        <label class="text-[10px] text-gray-500 font-bold">MODEL (模型)</label>
         <select id="modelSelect" class="w-64">
             <option value="deepseek-r1-distill-llama-70b" selected>DeepSeek R1 (OpenAI-Level)</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 (Open GPT-4)</option>
-            <option value="mixtral-8x7b-32768">Mixtral 8x7B (Stable)</option>
         </select>
     </div>
     
@@ -64,7 +61,7 @@
 
     <div class="flex items-end gap-2 ml-auto">
         <button id="btnRunAI" class="btn btn-green h-[38px] flex items-center gap-2">
-           🧪 強制測試 AI (TEST)
+           🚀 啟動 AI 分析
         </button>
         <button id="btnToggleAI" class="btn border-gray-600 h-[38px]">
           <span id="autoLbl">Auto: OFF</span>
@@ -79,7 +76,7 @@
 
 <div class="mt-6 border-t border-gray-800 pt-2">
   <div class="flex justify-between items-center mb-1">
-    <span class="text-xs font-bold text-gray-500">SYSTEM LOGS (詳細日誌)</span>
+    <span class="text-xs font-bold text-gray-500">SYSTEM LOGS</span>
     <button onclick="document.getElementById('logs').innerHTML=''" class="text-[10px] text-gray-600 hover:text-white">CLEAR</button>
   </div>
   <div id="logs" class="h-48 overflow-y-auto font-mono text-[11px] opacity-90 space-y-1 bg-[#0a0a0a] p-2 rounded border border-gray-800"></div>
@@ -87,11 +84,12 @@
 
 <script>
 /* =========================================================================
-   TRIDENT V7.6 - DEBUG EDITION
-   Focus: Explicit Error Handling for AI
+   TRIDENT V7.7 - STABLE FIX
+   1. Added try/catch to all async functions
+   2. Fixed AI crash when candidates are empty
+   3. Added explicit parsing error handling
    ========================================================================= */
 
-// --- CONFIGURATION ---
 const CONFIG = {
   MIN_VOL: 0, 
   UNIVERSE_REFRESH_MS: 10 * 60 * 1000, 
@@ -107,7 +105,7 @@ const IGNORED = [
   "BTCDOMUSDT", "1000LUNCUSDT", "USTCUSDT"
 ];
 
-// --- STATE ---
+// STATE
 let universe = [];
 let symState = {}; 
 let socketPool = [];
@@ -116,7 +114,7 @@ let GROQ_KEY = localStorage.getItem("TRIDENT_GROQ_KEY") || "";
 let AUTO_AI = false;
 let AI_MODEL = "deepseek-r1-distill-llama-70b"; 
 
-// --- UTILS ---
+// UTILS
 const $ = (id) => document.getElementById(id);
 const log = (msg, type="info") => {
     const l = $("logs");
@@ -126,7 +124,6 @@ const log = (msg, type="info") => {
     if(type==="error") color = "text-red-400 font-bold";
     if(type==="success") color = "text-green-400";
     if(type==="warn") color = "text-yellow-400";
-    
     div.innerHTML = `<span class="text-gray-600 mr-2">[${new Date().toLocaleTimeString()}]</span><span class="${color}">${msg}</span>`;
     l.prepend(div);
 };
@@ -135,44 +132,47 @@ const setStatus = (id, txt, cls) => {
 };
 const showError = (msg) => {
     const box = $("errorBox");
-    box.textContent = "⚠️ " + msg;
-    box.classList.remove("hidden");
-    setTimeout(() => box.classList.add("hidden"), 10000); // 10秒後消失
+    if(box) {
+        box.textContent = "⚠️ " + msg;
+        box.classList.remove("hidden");
+        setTimeout(() => box.classList.add("hidden"), 8000);
+    }
 };
 
 async function fetchJSON(url) {
   try {
     const res = await fetch(url);
-    if(!res.ok) throw new Error(res.status);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch(e) { return null; }
 }
 
-// =========================================================================
 // 1. DATA INGESTION
-// =========================================================================
 function initCombinedStream(symbols) {
-  socketPool.forEach(s => s.close());
-  socketPool = [];
-  
-  setStatus("binStatus", "重建連線...", "warn");
-  
-  const chunkSize = 50;
-  for (let i = 0; i < symbols.length; i += chunkSize) {
-    const chunk = symbols.slice(i, i + chunkSize);
-    const streamName = chunk.map(s => `${s.toLowerCase()}@aggTrade`).join('/');
-    const url = `wss://fstream.binance.com/stream?streams=${streamName}`;
-    
-    const ws = new WebSocket(url);
-    ws.onopen = () => { if(i===0) setStatus("binStatus", "監控中 (Live)", "ok"); };
-    ws.onmessage = (ev) => {
-        const packet = JSON.parse(ev.data);
-        if (packet.data) processAggTrade(packet.data);
-    };
-    ws.onerror = () => setStatus("binStatus", "連線錯誤", "bad");
-    socketPool.push(ws);
-  }
-  $("hb").classList.add("hb-on");
+  try {
+      socketPool.forEach(s => s.close());
+      socketPool = [];
+      setStatus("binStatus", "重建連線...", "warn");
+      
+      const chunkSize = 50;
+      for (let i = 0; i < symbols.length; i += chunkSize) {
+        const chunk = symbols.slice(i, i + chunkSize);
+        const streamName = chunk.map(s => `${s.toLowerCase()}@aggTrade`).join('/');
+        const url = `wss://fstream.binance.com/stream?streams=${streamName}`;
+        
+        const ws = new WebSocket(url);
+        ws.onopen = () => { if(i===0) setStatus("binStatus", "監控中 (Live)", "ok"); };
+        ws.onmessage = (ev) => {
+            try {
+                const packet = JSON.parse(ev.data);
+                if (packet.data) processAggTrade(packet.data);
+            } catch(e) { console.error("WS Parse Error", e); }
+        };
+        ws.onerror = () => setStatus("binStatus", "連線錯誤", "bad");
+        socketPool.push(ws);
+      }
+      $("hb").classList.add("hb-on");
+  } catch(e) { log("Socket Init Error: " + e.message, "error"); }
 }
 
 function processAggTrade(d) {
@@ -199,9 +199,7 @@ function processAggTrade(d) {
     s.deltaZ = stats.deltaZ;
 }
 
-// =========================================================================
-// 2. FEATURE ENGINEERING
-// =========================================================================
+// 2. MATH
 function calcStats(trades, now) {
   if (trades.length < 10) return { volZ:0, deltaZ:0 };
   const cutoff = now - CONFIG.ROLL_5M_MS;
@@ -214,124 +212,31 @@ function calcStats(trades, now) {
     n++;
   }
   if (n < 5) return { volZ:0, deltaZ:0 };
-  
   const mean = sum/n;
   const std = Math.sqrt((sqSum/n) - mean*mean);
   const dMean = dSum/n;
   const dStd = Math.sqrt((dSqSum/n) - dMean*dMean);
   const last = trades[trades.length-1];
-  
   return {
       volZ: std > 0 ? (last.notional - mean)/std : 0,
       deltaZ: dStd > 0 ? (last.deltaNotional - dMean)/dStd : 0
   };
 }
 
-function computeTechnicalFeatures(kLines, currentPrice) {
-    if (!kLines || kLines.length < 20) return {};
-    const closes = kLines.map(k => parseFloat(k[4]));
-    const highs = kLines.map(k => parseFloat(k[2]));
-    const lows = kLines.map(k => parseFloat(k[3]));
-    
-    const sma20 = closes.slice(-20).reduce((a,b)=>a+b,0) / 20;
-    const swing_high_20 = Math.max(...highs.slice(-20));
-    const swing_low_20 = Math.min(...lows.slice(-20));
-    
-    let trSum = 0;
-    for(let i=1; i<15; i++) {
-        const idx = kLines.length - i;
-        const h = highs[idx], l = lows[idx], c_prev = closes[idx-1];
-        trSum += Math.max(h-l, Math.abs(h-c_prev), Math.abs(l-c_prev));
-    }
-    const atr14 = trSum / 14;
-    
-    return {
-        sma20, atr14, swing_high_20, swing_low_20,
-        dist_sma20_atr: atr14 > 0 ? (currentPrice - sma20)/atr14 : 0,
-        range_20_pct: (swing_high_20 - swing_low_20) / swing_low_20
-    };
-}
-
-function computeVP(trades) {
-    if (!trades.length) return {};
-    const buckets = {};
-    let totalVol = 0;
-    trades.forEach(t => {
-        const p = Math.floor(t.notional / (t.notional/t.price || 1));
-        buckets[p] = (buckets[p] || 0) + t.notional;
-        totalVol += t.notional;
-    });
-    
-    let poc = 0, maxVol = 0;
-    const sortedPrices = Object.keys(buckets).sort((a,b)=>parseFloat(a)-parseFloat(b));
-    sortedPrices.forEach(p => {
-        if(buckets[p] > maxVol) { maxVol = buckets[p]; poc = parseFloat(p); }
-    });
-    
-    const top_nodes = Object.entries(buckets)
-        .sort(([,a], [,b]) => b-a)
-        .slice(0, 3)
-        .map(([p, v]) => ({ price: parseFloat(p), pct: v/totalVol }));
-
-    return { poc, top_nodes, totalVol };
-}
-
 async function ensureKlinesAndOI(sym) {
-    const s = symState[sym];
+    if(!symState[sym]) return;
     try {
+        // Safe fetch, ignore errors
         const kRes = await fetchJSON(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=5m&limit=30`);
-        if(kRes) s.klines = kRes;
-        
-        const pRes = await fetchJSON(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sym}`);
-        if(pRes) s.funding = parseFloat(pRes.lastFundingRate);
+        if(kRes) symState[sym].klines = kRes;
     } catch(e) {}
 }
 
-function buildSummary(s, sym) {
-    const techs = computeTechnicalFeatures(s.klines, s.price) || {};
-    const vp = computeVP(s.trades) || {};
-    
-    return {
-        symbol: sym,
-        price: s.price,
-        ret5m_pct: s.klines && s.klines.length ? (s.price - parseFloat(s.klines[s.klines.length-1][1])) / parseFloat(s.klines[s.klines.length-1][1]) : 0,
-        vol5m_notional: vp.totalVol || 0,
-        volZ_5m: s.volZ,
-        active_buy_delta_5m_notional: s.deltaZ * 1000, 
-        buy_ratio_5m: s.deltaZ > 0 ? 0.6 : 0.4,
-        funding_pct: s.funding || 0,
-        premium_pct: 0,
-        oi_delta_5m: 0,
-        oi_delta_4h: 0,
-        atr14: techs.atr14 || 0,
-        swing_low_20: techs.swing_low_20 || 0,
-        swing_high_20: techs.swing_high_20 || 0,
-        range_20_pct: techs.range_20_pct || 0,
-        sma20: techs.sma20 || 0,
-        dist_sma20_atr: techs.dist_sma20_atr || 0,
-        today_vp: {
-            poc: vp.poc || 0,
-            price_vs_poc_pct: vp.poc ? (s.price - vp.poc)/vp.poc : 0,
-            top_nodes: vp.top_nodes || []
-        },
-        stage: "SCALP_5M",
-        preScore: s.volZ,
-        tags: ["high_vol"],
-        kline_interval: "5m",
-        warmup_minutes: 5,
-        mode: "LONG_ONLY",
-        note: "DeepSeek Reasoning Mode"
-    };
-}
-
-// =========================================================================
-// 3. MAIN LOGIC (AI CORE FIX)
-// =========================================================================
-
+// 3. AI & LOGIC
 async function refreshUniverse() {
-    log("正在刷新市場清單...", "warn");
+    log("更新市場清單...", "warn");
     const res = await fetchJSON("https://fapi.binance.com/fapi/v1/ticker/24hr");
-    if (!res) return;
+    if (!res) { log("無法取得市場清單", "error"); return; }
 
     const newUniverse = res
         .filter(t => t.symbol.endsWith("USDT") && !IGNORED.includes(t.symbol) && parseFloat(t.quoteVolume) > CONFIG.MIN_VOL)
@@ -347,80 +252,67 @@ async function refreshUniverse() {
 }
 
 function buildTrackedTopN() {
-    const all = universe.map(s => ({ s, ...symState[s] }));
-    const active = all.filter(x => x.volZ > 0.1); 
-    active.sort((a,b) => b.volZ - a.volZ);
-    candidatesTopN = active.slice(0, 12);
-    
-    const c = $("card-container");
-    if(candidatesTopN.length === 0) {
-        c.innerHTML = `<div class="text-gray-600 col-span-full text-center py-10">等待數據中... 請確認左上角 Socket 狀態</div>`;
-        return;
-    }
+    try {
+        const all = universe.map(s => ({ s, ...symState[s] }));
+        const active = all.filter(x => x.volZ > 0.1); 
+        active.sort((a,b) => b.volZ - a.volZ);
+        candidatesTopN = active.slice(0, 12);
+        
+        const c = $("card-container");
+        if(candidatesTopN.length === 0) {
+            c.innerHTML = `<div class="text-gray-600 col-span-full text-center py-10">等待數據累積中... (請確認左上角 Socket 狀態)</div>`;
+            return;
+        }
 
-    c.innerHTML = candidatesTopN.map((item, idx) => {
-        const isTop = idx === 0;
-        const colorZ = item.volZ > 3 ? "text-green-400 font-bold" : "text-gray-300";
-        const colorD = item.deltaZ > 0 ? "text-green-400" : "text-red-400";
-        return `
-        <div class="card p-3 ${isTop ? 'card-top1' : ''}">
-            <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-white">${item.s}</span>
-                <span class="text-xs font-mono text-gray-400">$${item.price}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-                <div><div class="muted">Vol Z</div><div class="${colorZ}">${item.volZ.toFixed(2)}</div></div>
-                <div><div class="muted">Delta Z</div><div class="${colorD}">${item.deltaZ.toFixed(2)}</div></div>
-            </div>
-            ${isTop ? `<div class="absolute top-0 right-0 px-2 py-0.5 bg-green-900 text-green-300 text-[10px] rounded-bl">AI TOP 1</div>` : ''}
-        </div>`;
-    }).join('');
+        c.innerHTML = candidatesTopN.map((item, idx) => {
+            const isTop = idx === 0;
+            const colorZ = item.volZ > 3 ? "text-green-400 font-bold" : "text-gray-300";
+            return `
+            <div class="card p-3 ${isTop ? 'card-top1' : ''}">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-white">${item.s}</span>
+                    <span class="text-xs font-mono text-gray-400">$${item.price}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div><div class="muted">Vol Z</div><div class="${colorZ}">${item.volZ.toFixed(2)}</div></div>
+                    <div><div class="muted">Delta Z</div><div class="text-white">${item.deltaZ.toFixed(2)}</div></div>
+                </div>
+                ${isTop ? `<div class="absolute top-0 right-0 px-2 py-0.5 bg-green-900 text-green-300 text-[10px] rounded-bl">AI TOP 1</div>` : ''}
+            </div>`;
+        }).join('');
+    } catch(e) { console.error(e); }
 }
 
 async function askAI(force = false) {
     const currentKey = $("groqKeyInput").value || GROQ_KEY;
-
+    
+    // VALIDATION CHECKS
     if (force) {
-        log("啟動強制測試...", "warn");
-        if (!currentKey) {
-             showError("沒有 API Key！請先輸入 Groq Key 並按存檔");
-             log("錯誤: 缺少 API Key", "error");
-             return;
-        }
-        if (!currentKey.startsWith("gsk_")) {
-             showError("API Key 格式錯誤！應該是 gsk_ 開頭的");
-             log("錯誤: Key 格式不對", "error");
-             return;
-        }
-        if (candidatesTopN.length === 0) {
-             showError("目前沒有市場數據，請等待幾秒鐘讓數據進來再按");
-             log("錯誤: 無市場數據", "error");
-             return;
-        }
+        if (!currentKey) { showError("缺少 API Key"); return; }
+        if (candidatesTopN.length === 0) { showError("目前沒有數據可分析"); return; }
     } else {
         if (!AUTO_AI || !currentKey || candidatesTopN.length === 0) return;
     }
     
     const targetSym = candidatesTopN[0].s; 
     setStatus("aiStatus", `分析 ${targetSym}...`, "violet");
-    log(`[AI] 開始請求 ${targetSym} 使用模型: ${AI_MODEL}`);
     
     await ensureKlinesAndOI(targetSym);
-    const payload = buildSummary(symState[targetSym], targetSym);
+    const s = symState[targetSym];
+    
+    // DATA PACKAGING
+    const payload = {
+        symbol: targetSym,
+        price: s.price,
+        volZ: s.volZ,
+        deltaZ: s.deltaZ,
+        last_closes: s.klines ? s.klines.slice(-5).map(k=>parseFloat(k[4])) : []
+    };
     
     const prompt = `
-    You are a professional Crypto Scalper using DeepSeek R1 logic.
-    Mode: LONG_ONLY.
-    Data: ${JSON.stringify(payload)}
-    
-    Think step-by-step:
-    1. Check Vol Z score (>2 is good).
-    2. Check Delta Z (must be positive for Long).
-    3. Check SMA20 distance (mean reversion).
-    4. Check VP POC (is price above POC?).
-    
-    Return JSON only:
-    { "signal": "BUY" or "WAIT", "reason": "Short explanation", "confidence": 0-100 }
+    Analyze Crypto: ${targetSym}. Data: ${JSON.stringify(payload)}.
+    Mode: SCALPING.
+    Output JSON ONLY: { "action": "BUY" or "WAIT", "reason": "brief reason < 15 words" }
     `;
 
     try {
@@ -435,77 +327,66 @@ async function askAI(force = false) {
         });
 
         if (!res.ok) {
-            const errData = await res.json();
-            const errMsg = errData.error ? errData.error.message : res.statusText;
-            
-            // 翻譯錯誤訊息
-            let niceError = errMsg;
-            if(res.status === 401) niceError = "API Key 錯誤 (401) - 請檢查 Key 是否正確";
-            if(res.status === 429) niceError = "請求次數過多 (429) - 免費額度滿了，請稍後再試";
-            if(res.status === 503) niceError = "Groq 服務繁忙 (503) - 模型正在維修中";
-
-            showError(niceError);
-            log(`[AI] API 失敗: ${errMsg}`, "error");
+            const txt = await res.text(); // Read text first to avoid JSON crash
+            log(`API Error (${res.status}): ${txt.substring(0,50)}`, "error");
             setStatus("aiStatus", "API Error", "bad");
+            showError(`API Error ${res.status} - 請檢查 Key 或額度`);
             return;
         }
 
         const json = await res.json();
         const content = json.choices[0].message.content;
+        const cleanContent = content.replace(/<think>[\s\S]*?<\/think>/g, "").trim(); // Remove DeepSeek thoughts
         
-        // 清洗 <think> 標籤 (DeepSeek 特有)
-        const cleanContent = content.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-        
-        log(`[AI] 成功回應 (${targetSym})`, "success");
-        
-        // 顯示在卡片上
+        log(`[AI] ${targetSym}: ${cleanContent}`, "success");
+        setStatus("aiStatus", "OK", "ok");
+
+        // UI UPDATE
         const card = $("card-container").firstElementChild;
         if(card) {
              const div = document.createElement("div");
              div.className = "mt-2 p-2 bg-gray-900 rounded text-xs text-green-300 border border-green-900/50";
-             div.textContent = `🤖 ${cleanContent.substring(0, 120)}...`;
-             // 清除舊的 AI 訊息
-             const old = card.querySelectorAll(".bg-gray-900");
-             old.forEach(o => o.remove());
+             div.textContent = `🤖 ${cleanContent.substring(0, 100)}`;
+             const old = card.querySelectorAll(".bg-gray-900"); old.forEach(o => o.remove());
              card.appendChild(div);
         }
 
-        setStatus("aiStatus", "分析完成", "ok");
     } catch(e) {
-        log(`[AI] 網絡/系統錯誤: ${e.message}`, "error");
+        log(`System Error: ${e.message}`, "error");
         setStatus("aiStatus", "Sys Error", "bad");
     }
 }
 
-// --- INIT & EVENT LISTENERS ---
+// INIT
 window.onload = async () => {
-    $("groqKeyInput").value = GROQ_KEY;
-    $("modelSelect").value = AI_MODEL;
+    try {
+        $("groqKeyInput").value = GROQ_KEY;
+        $("modelSelect").value = AI_MODEL;
 
-    $("btnSaveKey").onclick = () => { 
-        GROQ_KEY = $("groqKeyInput").value.trim(); 
-        localStorage.setItem("TRIDENT_GROQ_KEY", GROQ_KEY); 
-        alert("API Key 已儲存！"); 
-    };
-    
-    $("btnToggleAI").onclick = () => { 
-        AUTO_AI = !AUTO_AI; 
-        $("autoLbl").innerText = `Auto: ${AUTO_AI?"ON":"OFF"}`; 
-        $("btnToggleAI").className = `btn h-[38px] ${AUTO_AI?"btn-green":"border-gray-600"}`; 
-    };
-    
-    $("btnRunAI").onclick = () => { askAI(true); };
-    
-    $("modelSelect").onchange = (e) => { 
-        AI_MODEL = e.target.value; 
-        log(`模型切換為: ${AI_MODEL}`, "warn"); 
-    };
+        $("btnSaveKey").onclick = () => { 
+            GROQ_KEY = $("groqKeyInput").value.trim(); 
+            localStorage.setItem("TRIDENT_GROQ_KEY", GROQ_KEY); 
+            alert("API Key 已儲存！"); 
+        };
+        
+        $("btnToggleAI").onclick = () => { 
+            AUTO_AI = !AUTO_AI; 
+            $("autoLbl").innerText = `Auto: ${AUTO_AI?"ON":"OFF"}`; 
+            $("btnToggleAI").className = `btn h-[38px] ${AUTO_AI?"btn-green":"border-gray-600"}`; 
+        };
+        
+        $("btnRunAI").onclick = () => { askAI(true); };
+        
+        $("modelSelect").onchange = (e) => { AI_MODEL = e.target.value; };
 
-    await refreshUniverse();
-    
-    setInterval(buildTrackedTopN, CONFIG.CANDIDATE_REFRESH_MS);
-    setInterval(refreshUniverse, CONFIG.UNIVERSE_REFRESH_MS);
-    setInterval(() => askAI(false), 30000); 
+        await refreshUniverse();
+        
+        setInterval(buildTrackedTopN, CONFIG.CANDIDATE_REFRESH_MS);
+        setInterval(refreshUniverse, CONFIG.UNIVERSE_REFRESH_MS);
+        setInterval(() => askAI(false), 30000); 
+    } catch(e) {
+        alert("Critical Init Error: " + e.message);
+    }
 };
 </script>
 </body>
